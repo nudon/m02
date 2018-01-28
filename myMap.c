@@ -3,11 +3,14 @@
 //that means picture/texture for tile, as well as if it's a wall/whatnot
 //as well as anything on that tile, so essentially some fileds are sets of items
 
+//also, ideally want to write a in engine map editor
+//basically just highlight a tile, and specify field values
+//might be a good use of learning how to do interfaces
+//then, could write a function to output map to text or other format
+
+//also, sdl has it's own file io libraries
+
 #include "myMap.h"
-#include "myImage.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 //globals
 static int MAX_CELLS = 1024;

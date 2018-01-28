@@ -19,7 +19,7 @@ IMAGE = $(MO2)"myImage.o"
 LL = $(DIRNAVSRC) 
 
 #Linkied objects
-LO = myImage.o myMap.o
+LO = myImage.o myMap.o myNPC.o
 
 ALLOBJO = $(OBJO) $(LO)
 
@@ -48,6 +48,8 @@ m02.o :
 myMap.o : myMap.c myImage.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 myImage.o : myImage.c
-	$(CC) $(COMPILER_FLAGS) -c -o $@ $<	
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+myNPC.o : myNPC.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 clear:
 	rm $(ALLOBJO)

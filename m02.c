@@ -4,7 +4,7 @@
 //#include "dirNav.h"
 #include "myMap.h"
 #include "myImage.h"
-
+#include "myNPC.h"
 //so, switched to renderers.
 //also, some very bizare behavior with renderer, top and bottom boundaries are normal
 //but left and right boundaries, approaching them causes screen to stretch out, then reset to original render draw color
