@@ -113,7 +113,8 @@ void freeNPC_list(NPC_list_t* npcList) {
 //can set dest to farther away, will sort of be stuck and commited to movement
 //can set closer, to reevaluate after each step.
 
-//also thinking of just shoving dest in NPC_node_t, can use if want, instead of making new structs for a a single new field, and rewriting mostly good functions
+//also thinking of just shoving dest in NPC_node_t, can use if want,
+//instead of making new structs for a a single new field, and rewriting mostly good functions
 
 
 void pickDest(NPC_node_t* npcNode) {
@@ -159,7 +160,7 @@ void pickDestLoop(NPC_list_t* pickList, NPC_list_t* moveList  ) {
 
 void moveDestLoop(NPC_list_t* pickList, NPC_list_t* moveList  ) {
   NPC_node_t* current = moveList->start;
-  tile_pos_t* lDest, * lPos;
+  tile_pos_t * lDest, * lPos;
   while(current != NULL) {
     //migth want to through some random in here, so NPC's might pause
     moveToDest(current);
@@ -174,3 +175,5 @@ void moveDestLoop(NPC_list_t* pickList, NPC_list_t* moveList  ) {
     current = current->next;
   }
 }
+
+
