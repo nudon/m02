@@ -143,6 +143,10 @@ SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
 //might need to change alg to look for closest non-walkable thing
 //then things that could "fly" over gaps would be stupide
 //could probably set that as a flag in npc, have move alg take that into account
+//anyway, issue of finding adjacent sections
+//first idea was storing for each sections, some list of transition-tiles
+//describing from which direction a new section may be found
+//also thought about storing section as a number/thing as a field either in tile or tile_pos
 
 
 void makeSections(tile_map_t* map) {
@@ -196,50 +200,40 @@ int checkSquares(tile_dist_list_t* theList, tile_map_t* map, tile_pos_t* center,
   tile->posY = center->posY - loopCount;
   //start in top left, go inc x until  center.x - tile.x = -LC
   while( (tile->posX - center->posX) >=  loopCount) {
-    if(isAWall(getTileFromMapPos(map, tile))) {
-      preMarkOffSect(center, tile);
-    }
-    else {
-      removeFromTile_dist_list(theList, getTileFromMapPos(map, tile));
-      foundNewTile++;
-    }
+    foundNewTile += makeSectionsCheckTile(map,theList,  tile, center);
     tile->posX++;
   }
   //then, start incrementing y till center.y - tile.y  == -LC
   while( (tile->posY - center->posY) >=  loopCount) {
-    if(isAWall(getTileFromMapPos(map, tile))) {
-      preMarkOffSect(center, tile);
-    }
-    else {
-      removeFromTile_dist_list(theList, getTileFromMapPos(map, tile));
-      foundNewTile++;
-    }
+    foundNewTile += makeSectionsCheckTile(map, theList,  tile, center);
     tile->posY++;
   }
   //then, start decrementing x till center.x - tile.x  == LC
   while( (tile->posX - center->posX) <=  loopCount) {
-    if(isAWall(getTileFromMapPos(map, tile))) {
-      preMarkOffSect(center, tile);
-    }
-    else {
-      removeFromTile_dist_list(theList, getTileFromMapPos(map, tile));
-      foundNewTile++;
-    }
+    foundNewTile += makeSectionsCheckTile(map, theList,  tile, center);
     tile->posX--;
   }
   //then, start decrementnig y till center.y - tile.y  == LC
   while( (tile->posY - center->posY) <=  loopCount) {
-    if(isAWall(getTileFromMapPos(map, tile))) {
-      preMarkOffSect(center, tile);
-    }
-    else {
-      removeFromTile_dist_list(theList, getTileFromMapPos(map, tile));
-      foundNewTile++;
-    }
+    foundNewTile += makeSectionsCheckTile(map, theList,  tile, center);
     tile->posY--;
   }
   return foundNewTile;
 }
+
+int makeSectionsCheckTile(tile_map_t* map, tile_dist_list_t* theList,  tile_pos_t* tile, tile_pos_t* center) {
+  int found = 0;
+  if(isAWall(getTileFromMapPos(map, tile))) {
+    preMarkOffSect(center, tile);
+    found = 0;
+  }
+  else {
+    removeFromTile_dist_list(theList, getTileFromMapPos(map, tile));
+    found = 1;
+  }
+  return found; 
+}
+
 
 void preMarkOffSect(tile_pos_t* center, tile_pos_t* tile)  {
   //might need to play with this a bit. Might not even be a constant. 
@@ -360,25 +354,25 @@ void setAvgDist(tile_map_t* map, tile_dist_node_t* theNode) {
   int y = theNode->storedTile->tilePosition->posY;
   //then find distance of nearest wall directly above
   //suddenly unsure about which dimension is rows or cols
-  while(!isAWall(&(map->cells[y][x + offset]))) {
+  while(!isAWall(getTileFromMapCord(map, y, x + offset))) {
     offset++;
   }
   avgDist = offset;
     
   offset = 0;
-  while(!isAWall(&(map->cells[y][x - offset]))) {
+  while(!isAWall(getTileFromMapCord(map, y, x - offset))) {
     offset++;
   }
   avgDist += offset;
 
   offset = 0;
-  while(!isAWall(&(map->cells[y + offset][x]))) {
+  while(!isAWall(getTileFromMapCord(map, y + offset, x))) {
     offset++;
   }
   avgDist += offset;
 
   offset = 0;
-  while(!isAWall(&(map->cells[y - offset][x]))) {
+  while(!isAWall(getTileFromMapCord(map, y - offset,x))) {
     offset++;
   }
   avgDist += offset;

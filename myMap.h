@@ -65,6 +65,7 @@ void markOffSect(tile_pos_t* c1, tile_pos_t* c2);
 int checkSquares(tile_dist_list_t* theList, tile_map_t* map, tile_pos_t* center, int loopCount);
 void makeSections(tile_map_t* map);
 int isAWall(tile_t* tile);
+int makeSectionsCheckTile(tile_map_t* map, tile_dist_list_t* theList,  tile_pos_t* tile, tile_pos_t* center);
 
 //stuff from mergesort
 void redoBacklinks(tile_dist_list_t * theList);
