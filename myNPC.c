@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include "myNPC.h"
+#include <assert.h>
 /*
   So for implementing npc's
 in each map struct, have a list of npc's
@@ -57,10 +59,10 @@ void prependToNPC_list(NPC_list_t* list, NPC_node_t* new) {
   new->prev = NULL;
 }
 
-void removeFromNPC_list(NPC_list_t* list, int ID) {
+void removeFromNPC_list(NPC_list_t* list, NPC_t* ID) {
   //from begining search
   NPC_node_t* node = list->start;
-  while(node != NULL && node->storedNPC->npcID != ID) {
+  while(node != NULL && node->storedNPC != ID) {
     node = node->next;
   }
   if (node != NULL) {
@@ -68,7 +70,7 @@ void removeFromNPC_list(NPC_list_t* list, int ID) {
     node->next->prev = node->prev;
   }
   else {
-    fprintf(stderr, "Error on attempting to remove NPC%d from list, npc not in list\n", ID);
+    fprintf(stderr, "Error on attempting to remove NPC from list, npc not in list\n");
   }
 }
 
@@ -117,7 +119,7 @@ void freeNPC_list(NPC_list_t* npcList) {
 //instead of making new structs for a a single new field, and rewriting mostly good functions
 
 
-void pickDest(NPC_node_t* npcNode) {
+void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   tile_pos_t* lDest = npcNode->dest;
   uint8_t lFlags = npcNode->storedNPC->flags;
   //presumably parse npc flags and determine some behavior
@@ -130,48 +132,115 @@ void pickDest(NPC_node_t* npcNode) {
   //could negate c to have something run from lDest
   //lDest->poxX = npc->posX + dx;
   //lDest->posY = npc->posY + dy;
+  //right now, just do random movement
+  int random = rand();
+  if (random % 5 == 0) {
+    //do nothing
+  }
+  else {
+    if (random % 4 == 0) {
+    npcNode->dest->posX -= 1;
+    } else if (random % 3 == 0) {
+      npcNode->dest->posY += 1;
+    } else if (random % 2 == 0) {
+      npcNode->dest->posY += 1;
+    } else {
+      npcNode->dest->posX += 1;
+    }
+    removeFromNPC_list(totNPC->idleNPC, npcNode->storedNPC);
+    prependToNPC_list(totNPC->moveNPC, npcNode);
+  }
 }
 
-void moveToDest(NPC_node_t* npcNode) {
+void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   int lSpeed = npcNode->storedNPC->speed;
-  //first off, have to do some routing, to not get stuck
-  //approach I had in notes, involved dividing areas
-  //and having paths between them.
-  //various ways to handle this, can either have pick dest pick path
-  //or pick actual dest, see if dest is in different sect then npc
-  //if it is, find some appropriate path to take, move towards that
+  lSpeed = lSpeed / TILED ;
+  int dx, dy, sy, sx;
+  dx = npcNode->dest->posX - npcNode->storedNPC->position->posX;
+  dy = npcNode->dest->posY - npcNode->storedNPC->position->posY;
+  sx = 1;
+  sy = 1;
+  if (dx < 0) {
+    sx = -1;
+  }
+  if (dy < 0) {
+    sy = -1;
+  }
+  if (dy == 0) {
+    npcNode->storedNPC->pixelPos->pixPosX += lSpeed * sx;
+    sy = 0;
+  }
+  else if (dx == 0) {
+    npcNode->storedNPC->pixelPos->pixPosY += lSpeed * sy;
+    sx = 0;
+  }
+  else {
+    if (rand() % 2 == 0) {
+      npcNode->storedNPC->pixelPos->pixPosX += lSpeed * sx;
+      sy = 0;
+    }
+    else {
+      npcNode->storedNPC->pixelPos->pixPosY += lSpeed * sy;
+      sx = 0;
+    }
+  }
+  if (sx == 0) {
+    if ( npcNode->storedNPC->pixelPos->pixPosX % TILED > TILED / 2) {
+      npcNode->storedNPC->position->posX = npcNode->storedNPC->pixelPos->pixPosX % TILED + 1;
+    }
+    else {
+      npcNode->storedNPC->position->posX = npcNode->storedNPC->pixelPos->pixPosX % TILED ;
+    }
+  }
+  else {
+    if ( npcNode->storedNPC->pixelPos->pixPosY % TILED > TILED / 2) {
+      npcNode->storedNPC->position->posY = npcNode->storedNPC->pixelPos->pixPosY % TILED + 1;
+    }
+    else {
+      npcNode->storedNPC->position->posY = npcNode->storedNPC->pixelPos->pixPosY % TILED ;
+    }
+  }
+  //checking this if I fucked up speed and overshot on last adjustment
+  dx = npcNode->dest->posX - npcNode->storedNPC->position->posX;
+  dy = npcNode->dest->posY - npcNode->storedNPC->position->posY;
+  assert((dx <= 0 && sx < 0) || (dx >= 0 && sx > 0));
+  assert((dy <= 0 && sy < 0) || (dy >= 0 && sy > 0));
+  if (dx == 0 && dy == 0) {
+    removeFromNPC_list(totNPC->moveNPC, npcNode->storedNPC);
+    prependToNPC_list(totNPC->idleNPC, npcNode);
+  }
+  //issue of picking directions
+  //well, if ones zero, easy
+  //otherwise, could do random, or take largest difference, resulting in eventual diagnol movement
+  
   //idea would be to take lSpeed, divide by a c
   //move them that much
+  //only issue is ensuring that npC will land on tile
+  //haven't actually defined much in terms of in-between tile locations
+  //tile_pos is actually ints. Fairly certain I used them like indexes in cells
+
+  //since I did that behind an acessor, could change pos to be some pixel value
+  //have acessors take pixel value / TILE_D or something to resolve to one tile
+
+  //or give npc an mpc_pos_t, being pixel based .
+  
+  
 }
 
-void pickDestLoop(NPC_list_t* pickList, NPC_list_t* moveList  ) {
-  NPC_node_t* current = pickList->start;
+void pickDestLoop(NPC_move_list* npcList) {
+  NPC_node_t* current = npcList->idleNPC->start;
   while(current != NULL) {
     //migth want to through some random in here
-    pickDest(current);
-    removeFromNPC_list(pickList, current->storedNPC->npcID);
-    //not sure which one is better
-    appendToNPC_list(moveList, current);
-    //prependToNPC_list(moveList, current);
+    pickDest(npcList, current);
     current = current->next;
   }
 }
 
 
-void moveDestLoop(NPC_list_t* pickList, NPC_list_t* moveList  ) {
-  NPC_node_t* current = moveList->start;
-  tile_pos_t * lDest, * lPos;
+void moveDestLoop(NPC_move_list* npcList) {
+  NPC_node_t* current = npcList->moveNPC->start;
   while(current != NULL) {
-    //migth want to through some random in here, so NPC's might pause
-    moveToDest(current);
-    lDest = current->dest;
-    lPos = current->storedNPC->position;
-    if (lPos->posX == lDest->posX && lPos->posY == lDest->posY) {
-      removeFromNPC_list(pickList, current->storedNPC->npcID);
-      //not sure which one is better
-      appendToNPC_list(moveList, current);
-      //prependToNPC_list(moveList, current);
-    }
+    moveToDest(npcList, current);
     current = current->next;
   }
 }

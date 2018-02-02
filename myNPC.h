@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include "myMap.h"
+#include "temp.h"
 
 typedef
 struct {
@@ -11,16 +11,21 @@ struct {
   int sprite_height;
   int rows;
   int cols;
-  SDL_Texture* sprite_sheet;
-  
+  SDL_Texture* sprite_sheet;  
 } sprite_holder_t;
 
 
+typedef
+struct {
+  int pixPosX;
+  int pixPosY;
+} npc_pos_t;
 
 typedef
 struct {
   int npcID;
   tile_pos_t* position;
+  npc_pos_t* pixelPos;
   int speed;
   sprite_holder_t* holder;
   int spriteRow;
@@ -43,12 +48,18 @@ struct {
   NPC_node_t* end;
 } NPC_list_t;
 
+typedef
+struct {
+  NPC_list_t* idleNPC;
+  NPC_list_t* moveNPC;
+} NPC_move_list;
+
 
 void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
-void removeFromNPC_list(NPC_list_t* list, int ID);
+void removeFromNPC_list(NPC_list_t* list, NPC_t* ID);
 
 NPC_list_t* createNPC_list();
 
@@ -58,12 +69,14 @@ void freeNPC_node(NPC_node_t* npcNode);
 
 void freeNPC_list(NPC_list_t* npcList);
 
-void pickDest(NPC_node_t* npcNode);
+void pickDest(NPC_move_list* npcList, NPC_node_t* npcNode);
 
-void moveToDest(NPC_node_t* npcNode);
+void moveToDest(NPC_move_list* npcList, NPC_node_t* npcNode);
 
-void pickDestLoop(NPC_list_t* pickList, NPC_list_t* moveList);
+void pickDestLoop(NPC_move_list* npcList);
 
-void moveDestLoop(NPC_list_t* pickList, NPC_list_t* moveList);
+void moveDestLoop(NPC_move_list* npcList);
+
+#include "myMap.h"
 
 #endif
