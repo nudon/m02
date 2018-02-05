@@ -25,7 +25,7 @@ ALLOBJO = $(OBJO) $(LO)
 
 ALLOBJ = $(OBJO) $(LO)
 
-COMPILER_FLAGS = -Wall 
+COMPILER_FLAGS = -Wall -g
 
 #Special SDL config code that links libraries magically
 SDL_CONFIG  = `sdl2-config --cflags --libs` -lSDL2_image
@@ -33,7 +33,9 @@ SDL_CONFIG  = `sdl2-config --cflags --libs` -lSDL2_image
 #things for threads
 THREAD = "-lpthread"
 
-TOTCONFIG = $(SDL_CONFIG) $(THREAD)
+#stuff for temporary usage of drawing primitives
+GETMATH = "-lm"
+TOTCONFIG = $(SDL_CONFIG) $(THREAD) $(GETMATH)
 
 # $@ is a macro for name of rule
 # $^ is all the deps for the rule
@@ -52,4 +54,4 @@ myImage.o : myImage.c
 myNPC.o : myNPC.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 clear:
-	rm $(ALLOBJO)
+	rm $(ALLOBJO) m02

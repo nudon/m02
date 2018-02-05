@@ -129,7 +129,7 @@ void loadSpriteMC(sprite_holder_t* holder) {
   holder->sprite_height = 32;
   holder->rows = 1;
   holder->cols = 1;
-  holder->sprite_sheet = loadTexture("..../media/sp/def.png", gRan);
+  holder->sprite_sheet = loadTexture("....../media/sp/def.png", gRan);
 }
 
 void freeNPC(NPC_t* npc) {
