@@ -127,6 +127,11 @@ void markOffSect(tile_pos_t* c1, tile_pos_t* c2) {
     for(int j = c1->posY; i <= c2->posY; j++) {
       //mark stuff off
       //also still not sure on row/col order
+      //had idea of marking the tilepossection the negative of center
+      //so if in section 5, and marking off a sector
+      //go through tiles, marking section as negative 5
+      //would have to change makeSectionchecktile to address this
+      //basically ignore a tile if pos > 0 or pos = -centpos
       //tile_t tile = getTileFromCord(map,j,i);
     }
   }

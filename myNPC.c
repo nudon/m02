@@ -35,6 +35,8 @@ call some specialized functions that goes through relevant lists on map
 //somewhat applies to non-tile based placement as well, just keep int array, and round npc pos
  */
 
+extern SDL_Renderer* gRan;
+
 void appendToNPC_list(NPC_list_t* list, NPC_node_t* new) {
   if (list->end != NULL) {
     list->end->next = new;
@@ -104,20 +106,36 @@ void freeNPC_list(NPC_list_t* npcList) {
   free(npcList);
 }
 
-//for function that decides on path dest for npc
-//decide on direction to go
-//modify/remove incase there are walls
-//then add to another list
-//right now just thinking on how to represent this
-//1 approach, set a "hopeful" destination, pair dest with npc
-//put in travel list, have travle loop through npcs in list and move them appropriately
-//can have variable fidelity with how npc's respond to change in environment
-//can set dest to farther away, will sort of be stuck and commited to movement
-//can set closer, to reevaluate after each step.
 
-//also thinking of just shoving dest in NPC_node_t, can use if want,
-//instead of making new structs for a a single new field, and rewriting mostly good functions
+NPC_t* createNPC() {
+  NPC_t* newNPC = malloc(sizeof(NPC_t));
+  newNPC->position = malloc(sizeof(tile_pos_t));
+  newNPC->pixelPos = malloc(sizeof(npc_pos_t));
+  newNPC->animState = malloc(sizeof(anim_state));
+  return newNPC;
+}
 
+void makeMC(NPC_t* slate) {
+  slate->npcID = 0;
+  slate->speed = 8;
+  slate->animState->spriteRow = 0;
+  slate->animState->spriteCol = 0;
+  slate->flags = 1;
+  loadSpriteMC(slate->animState->holder);
+}
+
+void loadSpriteMC(sprite_holder_t* holder) {
+  holder->sprite_width = 32;
+  holder->sprite_height = 32;
+  holder->rows = 1;
+  holder->cols = 1;
+  holder->sprite_sheet = loadTexture("..../media/sp/def.png", gRan);
+}
+
+void freeNPC(NPC_t* npc) {
+  //bit of a pickle here, since the npc_sprite_holder is shared among npcs
+  free(npc);
+}
 
 void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   tile_pos_t* lDest = npcNode->dest;
@@ -130,29 +148,42 @@ void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   //dy = npc->posiiton->posY - lDest->posY
   //dx = dx / c; dy = dy / c;
   //could negate c to have something run from lDest
-  //lDest->poxX = npc->posX + dx;
-  //lDest->posY = npc->posY + dy;
   //right now, just do random movement
-  int random = rand();
-  if (random % 5 == 0) {
-    //do nothing
-  }
-  else {
-    if (random % 4 == 0) {
-    npcNode->dest->posX -= 1;
-    } else if (random % 3 == 0) {
-      npcNode->dest->posY += 1;
-    } else if (random % 2 == 0) {
-      npcNode->dest->posY += 1;
-    } else {
-      npcNode->dest->posX += 1;
-    }
+  if (lFlags == 1) {
+    //receive input
+    //parse input
+    //correctly set dest
+    singleInput(npcNode);
     removeFromNPC_list(totNPC->idleNPC, npcNode->storedNPC);
     prependToNPC_list(totNPC->moveNPC, npcNode);
+  }
+  else {
+    int random = rand();
+    if (random % 5 == 0) {
+      //do nothing
+    }
+    else {
+      if (random % 4 == 0) {
+	npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
+      } else if (random % 3 == 0) {
+	npcNode->dest->posY = npcNode->storedNPC->position->posY - 1;
+      } else if (random % 2 == 0) {
+	npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
+      } else {
+	npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
+      }
+      removeFromNPC_list(totNPC->idleNPC, npcNode->storedNPC);
+      prependToNPC_list(totNPC->moveNPC, npcNode);
+    }
   }
 }
 
 void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
+  //what am I doing here
+  //have dx and dy, deltas of current pos to dest pos
+  //have sx and sy, which indicate sign of dx or dy
+  //also using it to indicate which direction npc was moved, after movement
+  //standard is, if sx is zero, just moved in y dir, and  vice versa
   int lSpeed = npcNode->storedNPC->speed;
   lSpeed = lSpeed / TILED ;
   int dx, dy, sy, sx;
@@ -184,7 +215,7 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
       sx = 0;
     }
   }
-  if (sx == 0) {
+  if (sy == 0) {
     if ( npcNode->storedNPC->pixelPos->pixPosX % TILED > TILED / 2) {
       npcNode->storedNPC->position->posX = npcNode->storedNPC->pixelPos->pixPosX % TILED + 1;
     }
@@ -201,30 +232,18 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
     }
   }
   //checking this if I fucked up speed and overshot on last adjustment
+  //just recalculating dx and dy, and making sure signs didn't switch
   dx = npcNode->dest->posX - npcNode->storedNPC->position->posX;
   dy = npcNode->dest->posY - npcNode->storedNPC->position->posY;
-  assert((dx <= 0 && sx < 0) || (dx >= 0 && sx > 0));
-  assert((dy <= 0 && sy < 0) || (dy >= 0 && sy > 0));
+  assert((dx <= 0 && sx <= 0) || (dx >= 0 && sx >= 0));
+  assert((dy <= 0 && sy <= 0) || (dy >= 0 && sy >= 0));
   if (dx == 0 && dy == 0) {
+    //might also be a good idea to explicity set npc_pos to center of tile
+    //though the current rounding I'm doing might approximately have that affect
+    //if things look off though, do it. 
     removeFromNPC_list(totNPC->moveNPC, npcNode->storedNPC);
     prependToNPC_list(totNPC->idleNPC, npcNode);
   }
-  //issue of picking directions
-  //well, if ones zero, easy
-  //otherwise, could do random, or take largest difference, resulting in eventual diagnol movement
-  
-  //idea would be to take lSpeed, divide by a c
-  //move them that much
-  //only issue is ensuring that npC will land on tile
-  //haven't actually defined much in terms of in-between tile locations
-  //tile_pos is actually ints. Fairly certain I used them like indexes in cells
-
-  //since I did that behind an acessor, could change pos to be some pixel value
-  //have acessors take pixel value / TILE_D or something to resolve to one tile
-
-  //or give npc an mpc_pos_t, being pixel based .
-  
-  
 }
 
 void pickDestLoop(NPC_move_list* npcList) {
@@ -246,3 +265,53 @@ void moveDestLoop(NPC_move_list* npcList) {
 }
 
 
+enum KeyPress {
+  KEY_PRESS_DEFAULT,
+  KEY_PRESS_UP,
+  KEY_PRESS_DOWN,
+  KEY_PRESS_LEFT,
+  KEY_PRESS_RIGHT,
+  KEY_PRESS_TOTAL
+};
+
+
+//just handling interthread communications through global variable globQuit
+//since acessing the return of input loop causes drawLoop to block
+//wasn't able to modify contentes of any pointer args I sent to input loop
+//compiler didn't like me touching contents of void*'s.
+//with way i handled generic NPC movement, kind of useless to have a seperate input loop
+//unless I change my movement thing to also live in a seperate thread/loop/fork
+
+extern int quit;
+
+void singleInput(NPC_node_t* npcNode) {
+  SDL_Event e;
+  if (SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      quit = 1;
+    }
+    else if (e.type == SDL_KEYDOWN) {
+      handleSingleInput(npcNode, e);
+    }
+  }
+}
+
+void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {
+  switch (e.key.keysym.sym){
+  case SDLK_UP:
+    npcNode->dest->posY = npcNode->storedNPC->position->posY - 1;
+    break;		
+  case SDLK_DOWN:
+    npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
+    break;
+  case SDLK_LEFT:
+    npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
+    break;
+  case SDLK_RIGHT:
+    npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
+    break;
+  default:
+    break;      
+  }
+  return;
+}

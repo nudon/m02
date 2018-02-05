@@ -11,6 +11,9 @@
 //also, sdl has it's own file io libraries
 
 #include "myMap.h"
+extern SDL_Renderer* gRan;
+extern npc_pos_t* cameraPos;
+extern int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 //globals
 
@@ -131,4 +134,48 @@ tile_t* getTileFromMapPos(tile_map_t* map, tile_pos_t* pos) {
 
 tile_t* getTileFromMapCord(tile_map_t* map, int y, int x) {
   return &(map->cells[x][y]);
+}
+
+void drawAllNPCS(NPC_move_list* list) {
+  drawNPCList(list->idleNPC);
+  drawNPCList(list->moveNPC);
+}
+
+void drawNPCList(NPC_list_t* list) {
+  NPC_node_t* current = list->start;
+  while(current != NULL) {
+    drawNPC(current->storedNPC);
+    current = current->next;
+  }
+}
+
+void drawNPC(NPC_t* npc) {
+  SDL_Rect srcRect, destRect;
+  destRect.x = npc->position->posX * TILED;
+  destRect.y = npc->position->posY * TILED;
+  destRect.w = TILED;
+  destRect.h = TILED;
+  if (destRect.x + TILED < cameraPos - (SCREEN_WIDTH / 2) || destRect.x > cameraPos + (SCREEN_WIDTH / 2)) {
+    //outside of screen, don't draw
+  }
+  else if (destRect.y + TILED < cameraPos - (SCREEN_HEIGHT / 2) || destRect.y > cameraPos + (SCREEN_HEIGHT / 2)) {
+    //outside of screen, don't draw
+  }
+  else {
+  srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
+  srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
+  srcRect.w = npc->animState->holder->sprite_width;
+  srcRect.h = npc->animState->holder->sprite_height;
+  //odd thing here, constraning sprite to a single tile
+  //would be kind of odd to implement
+  //width/height would be same as srcs
+  //if things are just tall, y dimension would be different
+  //if things are wide, would either have to change things, or do the classic
+  //clobber wide monsters into 4 sub monsters that move in unison. 
+
+  SDL_RenderCopy(gRan,
+		 npc->animState->holder->sprite_sheet,
+		 &srcRect,
+		 &destRect);
+  }	
 }

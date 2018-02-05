@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "temp.h"
+#include "myImage.h"
 
 typedef
 struct {
@@ -14,6 +15,12 @@ struct {
   SDL_Texture* sprite_sheet;  
 } sprite_holder_t;
 
+typedef
+struct {
+  sprite_holder_t* holder;
+  int spriteRow;
+  int spriteCol;  
+} anim_state;
 
 typedef
 struct {
@@ -27,9 +34,7 @@ struct {
   tile_pos_t* position;
   npc_pos_t* pixelPos;
   int speed;
-  sprite_holder_t* holder;
-  int spriteRow;
-  int spriteCcol;
+  anim_state* animState;
   uint8_t flags;
 } NPC_t;
 
@@ -54,6 +59,13 @@ struct {
   NPC_list_t* moveNPC;
 } NPC_move_list;
 
+NPC_t* createNPC();
+
+void freeNPC(NPC_t* npc);
+
+void makeMC(NPC_t* slate);
+
+void loadSpriteMC(sprite_holder_t* holder);
 
 void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
