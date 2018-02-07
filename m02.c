@@ -17,18 +17,14 @@ static int loadMedia();
 
 static void setDrawnMap();
 
-static void startDebug();
+static int  startDebug();
 
 static void gameLoop();
-
-static void drawLoop(int* quitp);
 
 
 //Globals
 SDL_Window* gWin = NULL;
 SDL_Renderer* gRan = NULL;
-SDL_Texture* gTex = NULL;
-extern int TILE_D;
 int quit = 0;
 npc_pos_t* cameraPos;
 
@@ -47,13 +43,27 @@ const int SLEEP_TIME_MS = 25;
 //additionally, having some other animate creatures
 
 
+//currently segfaulting randomly when touching SDL things
+//looks like it's usually from calls to malloc 
+
 
 int main(int argc, char** args) {
   quit = 0;
   if (init() == 0) {
     if (loadMedia() == 0) {
-      startDebug();
-      gameLoop(); 
+      SDL_Texture* logo = loadTexture("/home/nudon/prg/gam/sdl/pocus.png", gRan);
+      if (logo != NULL) {
+	SDL_RenderClear(gRan);
+	SDL_RenderCopy(gRan, logo, NULL, NULL);
+	SDL_RenderPresent(gRan);
+      }
+      SDL_Delay(100);
+      if (startDebug() == 0) {
+      	gameLoop();
+      }
+      else {
+	fprintf(stderr, "startDeubg failed, exitting\n");
+      }
     }
     else {
       fprintf(stderr,"LoadMediaFailed\n");
@@ -66,15 +76,28 @@ int main(int argc, char** args) {
   return 0;
 }
 
-static void startDebug() {
+static int startDebug() {
+  int fail = 0;
   activeMap = debugMap();
-  currMapBG = cinterTiles(activeMap, gRan);
-  NPC_t* mc = createNPC();
-  makeMC(mc);
-  mc->position->posX = 0;
-  mc->position->posY = 0;
-  cameraPos = mc->pixelPos;
-  prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
+  if (activeMap != NULL) {
+    currMapBG = cinterTiles(activeMap, gRan);
+    if (currMapBG != NULL) {
+    NPC_t* mc = createNPC();
+    makeMC(mc);
+    mc->position->posX = 0;
+    mc->position->posY = 0;
+    prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
+    }
+    else {
+      fprintf(stderr, "Failed to cinter background tiles\n");
+      fail = 2;
+    }
+  }
+  else {
+    fprintf(stderr, "Failed to load debugMap\n");
+    fail = 1;
+  }
+  return fail;
 }
 
 
@@ -117,6 +140,8 @@ void setDrawnMap() {
 
 
 void gameLoop() {
+  //1 second / frames per second * second / milisecond
+  float updateWait = 15;
   while(!quit) {
     SDL_RenderClear(gRan);
     pickDestLoop(activeMap->allNPCS);
@@ -124,6 +149,8 @@ void gameLoop() {
     setDrawnMap();
     SDL_RenderCopy(gRan, currMapBG, &drawnMap, NULL);
     drawAllNPCS(activeMap->allNPCS);
+    SDL_Delay(updateWait);    
+    SDL_RenderPresent(gRan);
   }
 } 
 
@@ -132,6 +159,9 @@ int init() {
   drawnMap.y = 0;
   drawnMap.w = SCREEN_WIDTH;
   drawnMap.h = SCREEN_HEIGHT;
+  cameraPos = malloc(sizeof(npc_pos_t));
+  cameraPos->pixPosX = 0;
+  cameraPos->pixPosY = 0;
   int fail = 0;
   if(SDL_Init(SDL_INIT_VIDEO) >= 0) {
     gWin = SDL_CreateWindow("SDL, Now with renderererers",
@@ -146,19 +176,19 @@ int init() {
 	SDL_SetRenderDrawColor(gRan, 0xff, 0xff, 0xff, 0xff);
 	int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
 	if (!(IMG_Init(imgFlags) & imgFlags)) {
-	  fail = 3;
+	  fail = 4;
 	  fprintf(stderr, "Error in loading img loading librarys: %s \n",
 		  IMG_GetError());
 	}
       }
       else {
-	fail == 2;
+	fail = 3;
 	fprintf(stderr, "Error in creating renderer for gWin: %s \n",
 		SDL_GetError());
       }      
     }
     else {
-      fail == 1;
+      fail = 2;
       fprintf(stderr, "Window Could not be created: %s\n",
 	      SDL_GetError());
     }
@@ -166,7 +196,7 @@ int init() {
   else {
     fprintf(stderr, "Error in init video %s\n",
 	    SDL_GetError() );
-    fail = 4;
+    fail =1;
   }
   return fail;
 }
@@ -174,10 +204,7 @@ int init() {
 
 int loadMedia() {
   int fail = 0;
-  currMapBG = loadTexture("/home/nudon/prg/gam/media/p/ran.jpg", gRan);
-  if (gTex == NULL) {
-    fail == 1;
-  }
+  //load any photos or logos here
   return fail;
 }
 

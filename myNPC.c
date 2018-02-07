@@ -1,39 +1,6 @@
 #include <stdlib.h>
 #include "myNPC.h"
 #include <assert.h>
-/*
-  So for implementing npc's
-in each map struct, have a list of npc's
-npc struct itself, store position, x/y for now, some fields/flags for npc behavior
-also speed, an animation struct *, and an anim index, keeps track of how far in cycle npc is
-
-might want a similar approach to objects like boxes and crates, maybe doors. 
-some struct, with some sprite sheet, posiiton, tracked of by map
-
-for sprite struct, was thinking of having on filesystem, 1 sprite sheet per npc
-haven't thought much beyond organizing sprite beyond seperate anim cycles get seperate rows/columns
-then, in program, have a struct, containing the sprite sheet, and x/y dimensions of single sprite
-
-
-now, issue of simultaneous character movement.
-approach to this is have 2 functions, each having their own list or circular buffer
- 1 that, for each npc in buffer, takes info like flags and pos, and spits out a direction to move
-then, if a dir was chosen, removes from buffer, add's to 2's
-2 that, for each npc in buffer, moves the npc in an appropriate vector. 
-then, if npc has reached destination, remove from 2's buffer, add to 1
-want destination to be a tile, to allow things to slide on ice or charge in a direction
-not really sure how to store that. easiest would be store as a pair in cust struct. 
-also, would want to set an npc's anim index from both functions
-//might be too advanced, but idea of certain interactions interupting movement would be nice
-//like getting knocked around, have dest and speed changed, 
-
-then, for actually drawing everything, npcs stationary, moving, boxes, 
-call some specialized functions that goes through relevant lists on map
-//also, had an interesting idea. If I'm parsing npc list for things in a subset of positions
-//might be worthwhile to have list be parrrallel to map, or in some way store in 2d array npcs
-//So I can just search through subset of 2d array, and not whole list
-//somewhat applies to non-tile based placement as well, just keep int array, and round npc pos
- */
 
 extern SDL_Renderer* gRan;
 
@@ -68,12 +35,33 @@ void removeFromNPC_list(NPC_list_t* list, NPC_t* ID) {
     node = node->next;
   }
   if (node != NULL) {
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
+    if (node->prev == NULL && node->next == NULL) {
+      list->start = NULL;
+      list->end = NULL;
+    }
+    else {
+      if (node->prev == NULL) {
+	list->start = node->next;
+      }
+      else if (node->next == NULL ){
+	list->end = node->prev;
+      }
+      else {
+	node->prev->next = node->next;
+	node->next->prev = node->prev;
+      }
+    }
   }
   else {
     fprintf(stderr, "Error on attempting to remove NPC from list, npc not in list\n");
   }
+}
+
+NPC_move_list* createNPC_move_list() {
+  NPC_move_list* newMoveList = malloc(sizeof(NPC_move_list));
+  newMoveList->idleNPC = createNPC_list();
+  newMoveList->moveNPC = createNPC_list();
+  return newMoveList;
 }
 
 NPC_list_t* createNPC_list() {
@@ -129,12 +117,21 @@ void loadSpriteMC(sprite_holder_t* holder) {
   holder->sprite_height = 32;
   holder->rows = 1;
   holder->cols = 1;
-  holder->sprite_sheet = loadTexture("..../media/sp/def.png", gRan);
+  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png", gRan);
 }
 
 void freeNPC(NPC_t* npc) {
   //bit of a pickle here, since the npc_sprite_holder is shared among npcs
   free(npc);
+}
+
+int equalTilePos(tile_pos_t* t1, tile_pos_t* t2) {
+  if (t1->posX == t2->posX && t1->posY == t2->posY) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
 }
 
 void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
@@ -154,8 +151,10 @@ void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
     //parse input
     //correctly set dest
     singleInput(npcNode);
-    removeFromNPC_list(totNPC->idleNPC, npcNode->storedNPC);
-    prependToNPC_list(totNPC->moveNPC, npcNode);
+    if (!equalTilePos(npcNode->dest, npcNode->storedNPC->position)) {
+	removeFromNPC_list(totNPC->idleNPC, npcNode->storedNPC);
+	prependToNPC_list(totNPC->moveNPC, npcNode);
+      }
   }
   else {
     int random = rand();
@@ -284,16 +283,19 @@ enum KeyPress {
 
 extern int quit;
 
+void breakpoint() {};
+
 void singleInput(NPC_node_t* npcNode) {
   SDL_Event e;
-  if (SDL_PollEvent(&e) != 0) {
-    if (e.type == SDL_QUIT) {
-      quit = 1;
-    }
-    else if (e.type == SDL_KEYDOWN) {
-      handleSingleInput(npcNode, e);
-    }
-  }
+  /* while(SDL_PollEvent(&e) != 0) { */
+  /*   breakpoint(); */
+  /*   if (e.type == SDL_QUIT) { */
+  /*     quit = 1; */
+  /*   } */
+  /*   else if (e.type == SDL_KEYDOWN) { */
+  /*     handleSingleInput(npcNode, e); */
+  /*   } */
+  /* } */
 }
 
 void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {

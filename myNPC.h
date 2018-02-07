@@ -8,6 +8,14 @@
 
 typedef
 struct {
+  //thinking of putting a magic pixel in upper left hand corner of valid sprite
+  //handles issue of having jagged arrays of sprite clips in a single sheet
+  //would call some generic function to advance a frame of animation
+  //would load the clip
+  //would check if the next sprite over has the magic pixel in the corner
+  //think you can read straight pixel  values from surface
+  //and if the magic pixel isn't there, wrap around to zero
+  //alternatively keep a list of the number of cols indexed by rows
   int sprite_width;
   int sprite_height;
   int rows;
@@ -73,6 +81,8 @@ void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 void removeFromNPC_list(NPC_list_t* list, NPC_t* ID);
 
+NPC_move_list* createNPC_move_list();
+
 NPC_list_t* createNPC_list();
 
 NPC_node_t* createNPC_node(NPC_t* npc);
@@ -80,6 +90,8 @@ NPC_node_t* createNPC_node(NPC_t* npc);
 void freeNPC_node(NPC_node_t* npcNode);
 
 void freeNPC_list(NPC_list_t* npcList);
+
+int equalTilePos(tile_pos_t* t1, tile_pos_t* t2);
 
 void pickDest(NPC_move_list* npcList, NPC_node_t* npcNode);
 

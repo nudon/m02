@@ -1,12 +1,20 @@
 #include "myImage.h"
-
 SDL_Surface* loadToSurface(char* path) {
   SDL_Surface* surface = IMG_Load(path);
+  if (surface == NULL) {
+    fprintf(stderr, "Error in loading picture %s to surface: %s \n",
+	    path, 
+	    SDL_GetError());
+  }
   return surface;  
 }
 
 SDL_Texture* loadTextureAlt(char* path, SDL_Renderer* gRan) {
   SDL_Texture* newText = IMG_LoadTexture(gRan, path);
+  if (newText == NULL) {
+    fprintf(stderr, "Error in converting surface to Texture: %s \n",
+	    SDL_GetError());
+  }
   return newText;
 }
 
