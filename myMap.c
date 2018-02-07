@@ -45,8 +45,12 @@ tile_t** debugTilesInit() {
 
 tile_t** readMap(char* mapPath) {
   //first, parse file, find dimensions
-  //look before leeping, SDL has it's own file io
-  //use that instead
+  //suddenly suck at string processing
+  //want to grab things delimited by spaces
+  //but also 
+  //then, malloc a tile_t[rows][cells]
+  //then, parse file again, initializing each cell
+  //then create file_map_t, 
   FILE* mapFile = fopen(mapPath, "r");
   tile_t** tiles;
   if (mapFile != NULL) {
@@ -89,32 +93,17 @@ SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
   //also need to change this to use Renderer/textures instead of Surfaces
   SDL_Texture* megaTexture = NULL;
   SDL_Surface* megaSurface;
-
-  //I stole this from https://wiki.libsdl.org/SDL_CreateRGBSurface
-  Uint32 rmask, gmask, bmask, amask;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-  rmask = 0xff000000;
-  gmask = 0x00ff0000;
-  bmask = 0x0000ff00;
-  amask = 0x000000ff;
-#else
-  rmask = 0x000000ff;
-  gmask = 0x0000ff00;
-  bmask = 0x00ff0000;
-  amask = 0xff000000;
-#endif
-  megaSurface = SDL_CreateRGBSurface(0, tiles->cols * TILED, tiles->rows * TILED,
-				     32,rmask, gmask,  bmask, amask);
-  //my crimes end here. 
   if (tiles->rows * tiles->cols >= 0) {
+    //SDL_Surface* megaTexture = malloc(sizeof(SDL_Surface*));
+    //unsure how to declare a SDL_Surface of unknown size
+    //assuming for now that megaTexture is a blank surface of appropriate size
     SDL_Rect subTexture;
-    SDL_Surface* loadedSurface;
     subTexture.w = TILED;
     subTexture.h = TILED;
-
     subTexture.y = 0;
+    subTexture.x = 0;
+    SDL_Surface* loadedSurface;
     for (int i = 0; i < tiles->rows; i++) {
-      subTexture.x = 0;
       for (int j = 0; j < tiles->cols; j++) {
 	tile_t* tile = getTileFromMapCord(tiles, j, i);
 	char* thingy = tile->tilePath;
@@ -124,12 +113,12 @@ SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
 			megaSurface,
 			&subTexture);
 	SDL_FreeSurface(loadedSurface);
+	//load thingy, then add to some megatexture
 	subTexture.x += TILED;
       }
       subTexture.y += TILED;
     }
     megaTexture = loadSurfaceToTexture(megaSurface, gRan);
-    SDL_FreeSurface(megaSurface);
   
   }
   else {
@@ -159,78 +148,6 @@ void drawNPCList(NPC_list_t* list) {
     current = current->next;
   }
 }
-//temporary stuff for draw primitives
-#include <math.h>
-void myDrawRect(int x1, int y1, int x2, int y2) {
-  SDL_Rect rect;
-  rect.x = x1;
-  rect.y = y1;
-  rect.w = x2 - x1;
-  rect.h = y2 - y1;
-  SDL_RenderFillRect(gRan, &rect);
-}
-
-
-void myDrawCirc(int x, int y, int rad) {
-  //redux, this is v2. v1 is worst girl
-  //measuring angle in degrees
-  //nevermind, doing radians because base cos/sin use that
-
-  double theta = 0;
-  double halfACircle = M_PI;
-  int quality = 100;
-  double dTheta = M_PI / quality;
-  int c1x, c2x, c1y, c2y;
-  while(theta < halfACircle) {
-    //find c1x, c1y
-    c1x = x + rad * cos(theta);
-    c1y = y + rad * sin(theta);
-    //find c2x, c2y
-    c2x = x;
-    c2y = y - rad * sin(theta);
-    fprintf(stderr, "(%d, %d) and (%d, %d) were corners\n", c1x, c1y, c2x, c2y);
-    myDrawRect(c1x, c1y, c2x, c2y);
-    theta += dTheta;
-  }
-
-}
-
-double mSq(double b) {
-  return b*b;
-}
-
-void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
-  if (layers > 0) {
-    SDL_Color old;
-    if (SDL_GetRenderDrawColor(gRan, &old.r, &old.g, &old.b, &old.a) == 0) {
-      int r;
-      int g;
-      int b;
-      int scrmble = layers;
-      //find delta, will be different for y and x
-      //y, take ((y2 - y1) / 2) / layers
-      //x, take ((x2 - x1) / 2) / layers
-      int dx, dy;
-      dx = ((x2 - x1) / 2) / layers;
-      dy = ((y2 - y1) / 2) / layers;
-      for (int i = 0; i <  layers; i++) {
-	r = 255 * mSq(sin(i * M_PI/scrmble));
-	g = 255 * mSq(cos(i * M_PI/scrmble));
-	b = 255 * mSq(tan(i * M_PI/scrmble));
-	SDL_SetRenderDrawColor( gRan, r, g, b, 0xFF );
-	myDrawRect( x1 + dx * i, y1 + dy * i, x2 - dx * i, y2 - dy * i);
-      }
-      SDL_SetRenderDrawColor(gRan, old.r, old.g, old.b, old.a);
-    }
-    else {
-      fprintf(stderr, "Unable to backup previous drawRender settings: %s  \n", SDL_GetError());
-    }
-  }
-  else {
-    fprintf(stderr, "FunRect passed negative or zero layers \n");
-  }
-}
-
 
 void drawNPC(NPC_t* npc) {
   SDL_Rect srcRect, destRect;
@@ -238,42 +155,27 @@ void drawNPC(NPC_t* npc) {
   destRect.y = npc->position->posY * TILED;
   destRect.w = TILED;
   destRect.h = TILED;
-  if (destRect.x + TILED < cameraPos->pixPosX - (SCREEN_WIDTH / 2) ||
-      destRect.x > cameraPos->pixPosX + (SCREEN_WIDTH / 2)) {
+  if (destRect.x + TILED < cameraPos - (SCREEN_WIDTH / 2) || destRect.x > cameraPos + (SCREEN_WIDTH / 2)) {
     //outside of screen, don't draw
   }
-  else if (destRect.y + TILED < cameraPos->pixPosY - (SCREEN_HEIGHT / 2) ||
-	   destRect.y > cameraPos->pixPosY + (SCREEN_HEIGHT / 2)) {
+  else if (destRect.y + TILED < cameraPos - (SCREEN_HEIGHT / 2) || destRect.y > cameraPos + (SCREEN_HEIGHT / 2)) {
     //outside of screen, don't draw
   }
   else {
-    if (npc->animState->holder->sprite_sheet != NULL) {
-      
-      srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
-      srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
-      srcRect.w = npc->animState->holder->sprite_width;
-      srcRect.h = npc->animState->holder->sprite_height;
-      //odd thing here, constraning sprite to a single tile
-      //would be kind of odd to implement
-      //width/height would be same as srcs
-      //if things are just tall, y dimension would be different
-      //if things are wide, would either have to change things, or do the classic
-      //clobber wide monsters into 4 sub monsters that move in unison. 
-      
-      SDL_RenderCopy(gRan,
-		     npc->animState->holder->sprite_sheet,
-		     &srcRect,
-		     &destRect);
-    }
-    else {
-      //use drawing primitives
-      if (npc->flags == 1) {
-	myDrawFunRect(destRect.x, destRect.y, destRect.x + destRect.w, destRect.y + destRect.h, 5);
-      }
-      else {
-	SDL_SetRenderDrawColor( gRan, 0x00, 0x00, 0x00, 0xFF );
-	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 2);
-      }
-    }
-  }
+  srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
+  srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
+  srcRect.w = npc->animState->holder->sprite_width;
+  srcRect.h = npc->animState->holder->sprite_height;
+  //odd thing here, constraning sprite to a single tile
+  //would be kind of odd to implement
+  //width/height would be same as srcs
+  //if things are just tall, y dimension would be different
+  //if things are wide, would either have to change things, or do the classic
+  //clobber wide monsters into 4 sub monsters that move in unison. 
+
+  SDL_RenderCopy(gRan,
+		 npc->animState->holder->sprite_sheet,
+		 &srcRect,
+		 &destRect);
+  }	
 }

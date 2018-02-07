@@ -1,4 +1,5 @@
 #include "myImage.h"
+
 SDL_Surface* loadToSurface(char* path) {
   SDL_Surface* surface = IMG_Load(path);
   return surface;  
