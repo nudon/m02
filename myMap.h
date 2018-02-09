@@ -53,5 +53,6 @@ void singleInput(NPC_node_t* npc);
 
 void handleSingleInput(NPC_node_t* npcNode, SDL_Event e);
 
+int isAWall(tile_t* tile);
 
 #endif 

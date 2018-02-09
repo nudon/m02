@@ -279,3 +279,13 @@ void drawNPC(NPC_t* npc) {
     }
   }
 }
+
+
+int isAWall(tile_t* tile) {
+  if (tile->isWall == 0) {
+    return 0;
+  }
+  else {
+    return 1;
+  }
+}

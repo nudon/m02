@@ -73,6 +73,14 @@ void freeNPC(NPC_t* npc);
 
 void makeMC(NPC_t* slate);
 
+void setNPCPosition(NPC_t* npc, tile_pos_t* pos);
+
+void setNPCPositionByCord(NPC_t* npc, int x, int y);
+ 
+void setTilePosition(tile_pos_t* npcPos, tile_pos_t* pos);
+
+void setTilePositionByCord(tile_pos_t* npcPos, int x, int y);
+
 void loadSpriteMC(sprite_holder_t* holder);
 
 void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
@@ -100,6 +108,12 @@ void moveToDest(NPC_move_list* npcList, NPC_node_t* npcNode);
 void pickDestLoop(NPC_move_list* npcList);
 
 void moveDestLoop(NPC_move_list* npcList);
+
+int validPos(tile_pos_t* tile);
+
+void positionShift(NPC_t* npc, int* shiftPos, int shiftAmount);
+
+void updateNPCPos(NPC_t* npc);
 
 #include "myMap.h"
 

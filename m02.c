@@ -86,6 +86,7 @@ static int startDebug() {
     makeMC(mc);
     mc->position->posX = 0;
     mc->position->posY = 0;
+    setNPCPositionByCord(mc, 0 , 0);
     prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
     }
     else {
@@ -112,7 +113,7 @@ void setDrawnMap() {
     drawnMap.y = currentPos->pixPosY - (SCREEN_HEIGHT / 2);
   }
   
-  if (map->cols * TILED > SCREEN_WIDTH) {
+  if (map->cols * TILED < SCREEN_WIDTH) {
     drawnMap.x = (SCREEN_WIDTH - map->cols * TILED) / 2;
     drawnMap.w = map->cols * TILED;
   }
@@ -142,6 +143,7 @@ void setDrawnMap() {
 void gameLoop() {
   //1 second / frames per second * second / milisecond
   float updateWait = 15;
+  setDrawnMap();
   while(!quit) {
     SDL_RenderClear(gRan);
     pickDestLoop(activeMap->allNPCS);
@@ -149,7 +151,8 @@ void gameLoop() {
     setDrawnMap();
     SDL_RenderCopy(gRan, currMapBG, &drawnMap, NULL);
     drawAllNPCS(activeMap->allNPCS);
-    SDL_Delay(updateWait);    
+    SDL_Delay(updateWait);
+    fprintf(stderr, "iteration\n");
     SDL_RenderPresent(gRan);
   }
 } 

@@ -3,6 +3,7 @@
 #include <assert.h>
 
 extern SDL_Renderer* gRan;
+extern tile_map_t* activeMap;
 
 void appendToNPC_list(NPC_list_t* list, NPC_node_t* new) {
   if (list->end != NULL) {
@@ -75,6 +76,7 @@ NPC_node_t* createNPC_node(NPC_t* npc) {
   NPC_node_t* newNode = malloc(sizeof(NPC_node_t));
   newNode->dest = malloc(sizeof(tile_pos_t));
   newNode->storedNPC = npc;
+  setTilePosition(newNode->dest, npc->position);
   newNode->next = NULL;
   newNode->prev = NULL;
   return newNode;       
@@ -100,16 +102,35 @@ NPC_t* createNPC() {
   newNPC->position = malloc(sizeof(tile_pos_t));
   newNPC->pixelPos = malloc(sizeof(npc_pos_t));
   newNPC->animState = malloc(sizeof(anim_state));
+  newNPC->animState->holder = malloc(sizeof(sprite_holder_t));
   return newNPC;
 }
 
 void makeMC(NPC_t* slate) {
   slate->npcID = 0;
-  slate->speed = 8;
+  slate->speed = TILED * 4;
   slate->animState->spriteRow = 0;
   slate->animState->spriteCol = 0;
   slate->flags = 1;
   loadSpriteMC(slate->animState->holder);
+}
+
+ void setNPCPosition(NPC_t* npc, tile_pos_t* pos) {
+   setNPCPositionByCord(npc, pos->posX, pos->posY);
+ }
+ void setNPCPositionByCord(NPC_t* npc, int x, int y) {
+   setTilePositionByCord(npc->position, x,y);
+   npc->pixelPos->pixPosX = x * TILED;
+   npc->pixelPos->pixPosY = y * TILED;
+ }
+ 
+void setTilePosition(tile_pos_t* npcPos, tile_pos_t* pos) {
+  setTilePositionByCord(npcPos, pos->posX, pos->posY);
+}
+
+void setTilePositionByCord(tile_pos_t* npcPos, int x, int y) {
+  npcPos->posX = x;
+  npcPos->posY = y;
 }
 
 void loadSpriteMC(sprite_holder_t* holder) {
@@ -176,6 +197,39 @@ void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
     }
   }
 }
+int validPos(tile_pos_t* tile) {
+  int val = 1;
+  if(tile->posX < 0 || tile->posX >= activeMap->cols)
+    val = 0;
+  else if(tile->posY < 0 || tile->posY >= activeMap->rows)
+    val = 0;
+  else if(isAWall(getTileFromMapPos(activeMap,tile)))
+    val = 0;
+  return val;
+}
+
+void positionShift(NPC_t* npc, int* shiftPos, int shiftAmount) {
+  //currently this is off
+  //able to walk out of bounds currently and break everything 
+  *shiftPos = *shiftPos +  shiftAmount;
+  updateNPCPos(npc);
+  if (!validPos(npc->position)) {
+    *shiftPos = *shiftPos - shiftAmount;
+    updateNPCPos(npc);
+  }
+}
+
+void updateNPCPos(NPC_t* npc) {
+  //pixelpos - TILED * pos
+  int tileOffset = npc->pixelPos->pixPosX - npc->position->posX * TILED;  
+  if ( tileOffset > TILED / 2 || tileOffset < -TILED / 2) {
+    npc->position->posX += round((double)tileOffset / TILED);
+  }
+  tileOffset = npc->pixelPos->pixPosY - npc->position->posY * TILED;
+  if ( tileOffset > TILED / 2 || tileOffset < -TILED / 2) {
+    npc->position->posY += round((double)tileOffset / TILED);
+  }
+}
 
 void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   //what am I doing here
@@ -184,8 +238,8 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   //also using it to indicate which direction npc was moved, after movement
   //standard is, if sx is zero, just moved in y dir, and  vice versa
   int lSpeed = npcNode->storedNPC->speed;
-  lSpeed = lSpeed / TILED ;
-  int dx, dy, sy, sx;
+  lSpeed = lSpeed / TILED ;  
+  int dx, dy, sx, sy;
   dx = npcNode->dest->posX - npcNode->storedNPC->position->posX;
   dy = npcNode->dest->posY - npcNode->storedNPC->position->posY;
   sx = 1;
@@ -197,37 +251,17 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
     sy = -1;
   }
   if (dy == 0) {
-    npcNode->storedNPC->pixelPos->pixPosX += lSpeed * sx;
-    sy = 0;
+    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
   }
   else if (dx == 0) {
-    npcNode->storedNPC->pixelPos->pixPosY += lSpeed * sy;
-    sx = 0;
+    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
   }
   else {
     if (rand() % 2 == 0) {
-      npcNode->storedNPC->pixelPos->pixPosX += lSpeed * sx;
-      sy = 0;
+    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
     }
     else {
-      npcNode->storedNPC->pixelPos->pixPosY += lSpeed * sy;
-      sx = 0;
-    }
-  }
-  if (sy == 0) {
-    if ( npcNode->storedNPC->pixelPos->pixPosX % TILED > TILED / 2) {
-      npcNode->storedNPC->position->posX = npcNode->storedNPC->pixelPos->pixPosX % TILED + 1;
-    }
-    else {
-      npcNode->storedNPC->position->posX = npcNode->storedNPC->pixelPos->pixPosX % TILED ;
-    }
-  }
-  else {
-    if ( npcNode->storedNPC->pixelPos->pixPosY % TILED > TILED / 2) {
-      npcNode->storedNPC->position->posY = npcNode->storedNPC->pixelPos->pixPosY % TILED + 1;
-    }
-    else {
-      npcNode->storedNPC->position->posY = npcNode->storedNPC->pixelPos->pixPosY % TILED ;
+    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
     }
   }
   //checking this if I fucked up speed and overshot on last adjustment
@@ -243,6 +277,7 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
     removeFromNPC_list(totNPC->moveNPC, npcNode->storedNPC);
     prependToNPC_list(totNPC->idleNPC, npcNode);
   }
+    
 }
 
 void pickDestLoop(NPC_move_list* npcList) {
@@ -283,19 +318,17 @@ enum KeyPress {
 
 extern int quit;
 
-void breakpoint() {};
 
 void singleInput(NPC_node_t* npcNode) {
   SDL_Event e;
-  /* while(SDL_PollEvent(&e) != 0) { */
-  /*   breakpoint(); */
-  /*   if (e.type == SDL_QUIT) { */
-  /*     quit = 1; */
-  /*   } */
-  /*   else if (e.type == SDL_KEYDOWN) { */
-  /*     handleSingleInput(npcNode, e); */
-  /*   } */
-  /* } */
+  while(SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      quit = 1;
+    }
+    else if (e.type == SDL_KEYDOWN) {
+      handleSingleInput(npcNode, e);
+    }
+  }
 }
 
 void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {
