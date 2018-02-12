@@ -13,6 +13,7 @@
 #include "myMap.h"
 extern SDL_Renderer* gRan;
 extern npc_pos_t* cameraPos;
+extern SDL_Rect drawnMap, drawnScreen;
 extern int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 //globals
@@ -235,9 +236,13 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
 
 
 void drawNPC(NPC_t* npc) {
+  //issue here, is sort of alligning it with drawnMap/drawnScreen
+  //or, corretly translating a base posiiton to where it will be actually be drawn
+  //see, issue here is, destRect is not offset at all by what drawnScreen Is
+  //just add drawnMap.x/y to respective destRect?
   SDL_Rect srcRect, destRect;
-  destRect.x = npc->position->posX * TILED;
-  destRect.y = npc->position->posY * TILED;
+  destRect.x = npc->position->posX * TILED + drawnScreen.x;
+  destRect.y = npc->position->posY * TILED + drawnScreen.y;
   destRect.w = TILED;
   destRect.h = TILED;
   if (destRect.x + TILED < cameraPos->pixPosX - (SCREEN_WIDTH / 2) ||
@@ -249,7 +254,7 @@ void drawNPC(NPC_t* npc) {
     //outside of screen, don't draw
   }
   else {
-    if (npc->animState->holder->sprite_sheet != NULL) {
+    if (npc->animState->holder->sprite_sheet != NULL && 0) {
       
       srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
       srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;

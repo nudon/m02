@@ -28,6 +28,7 @@ SDL_Renderer* gRan = NULL;
 int quit = 0;
 npc_pos_t* cameraPos;
 
+SDL_Rect drawnScreen;
 SDL_Rect drawnMap;
 SDL_Texture* currMapBG = NULL;
 tile_map_t* activeMap = NULL;
@@ -103,23 +104,37 @@ static int startDebug() {
 
 
 void setDrawnMap() {
+  //confused src rect and dst rect somewhat
+  //might have been bacuse i hadn't set a dst rect globally, 
   tile_map_t * map = activeMap;
   npc_pos_t* currentPos = cameraPos;
   if (map->rows * TILED < SCREEN_HEIGHT) {
-    drawnMap.y = (SCREEN_HEIGHT - map->rows * TILED) / 2;
-    drawnMap.h = map->rows * TILED;    
+    drawnMap.y = 0;
+    drawnMap.h = map->rows * TILED;
+    drawnScreen.y =  (SCREEN_HEIGHT - map->rows * TILED) / 2;
+    //    drawnScreen.h = map->rows * TILED;
   }
   else {
     drawnMap.y = currentPos->pixPosY - (SCREEN_HEIGHT / 2);
+    drawnMap.h = SCREEN_HEIGHT;
+    drawnScreen.y = 0;
+    //    drawnScreen.h = SCREEN_HEIGHT;
   }
+  drawnScreen.h = drawnMap.h;
   
   if (map->cols * TILED < SCREEN_WIDTH) {
-    drawnMap.x = (SCREEN_WIDTH - map->cols * TILED) / 2;
+    drawnMap.x = 0;
     drawnMap.w = map->cols * TILED;
+    drawnScreen.x =  (SCREEN_WIDTH - map->cols * TILED) / 2;
+    //    drawnScreen.w = map->cols * TILED;
   }
   else {
     drawnMap.x = currentPos->pixPosX - (SCREEN_WIDTH / 2);
+    drawnMap.w = SCREEN_WIDTH;
+    drawnScreen.x = 0;
+    //    drawnScreen.w = SCREEN_WIDTH;
   }
+  drawnScreen.w = drawnMap.w;
   
   if (drawnMap.y < 0) {
     drawnMap.y = 0;
@@ -149,7 +164,7 @@ void gameLoop() {
     pickDestLoop(activeMap->allNPCS);
     moveDestLoop(activeMap->allNPCS);
     setDrawnMap();
-    SDL_RenderCopy(gRan, currMapBG, &drawnMap, NULL);
+    SDL_RenderCopy(gRan, currMapBG, &drawnMap, &drawnScreen);
     drawAllNPCS(activeMap->allNPCS);
     SDL_Delay(updateWait);
     fprintf(stderr, "iteration\n");
