@@ -1,8 +1,3 @@
-//here's my rough idea for implementing tiles and whatnot
-//have some struct, contains all info on tile
-//that means picture/texture for tile, as well as if it's a wall/whatnot
-//as well as anything on that tile, so essentially some fileds are sets of items
-
 //also, ideally want to write a in engine map editor
 //basically just highlight a tile, and specify field values
 //might be a good use of learning how to do interfaces
@@ -16,7 +11,6 @@ extern npc_pos_t* cameraPos;
 extern SDL_Rect drawnMap, drawnScreen;
 extern int SCREEN_WIDTH, SCREEN_HEIGHT;
 
-//globals
 
 tile_map_t* debugMap() {
   tile_map_t* debugMap = malloc(sizeof(tile_map_t));
@@ -88,8 +82,6 @@ tile_t** readMap(char* mapPath) {
 }
 
 SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
-  //passes through tileMap of tiles, draws all tiles to 1 SDL_Texture
-  //also need to change this to use Renderer/textures instead of Surfaces
   SDL_Texture* megaTexture = NULL;
   SDL_Surface* megaSurface;
 
@@ -162,6 +154,8 @@ void drawNPCList(NPC_list_t* list) {
     current = current->next;
   }
 }
+
+
 //temporary stuff for draw primitives
 #include <math.h>
 void myDrawRect(int x1, int y1, int x2, int y2) {
@@ -175,23 +169,16 @@ void myDrawRect(int x1, int y1, int x2, int y2) {
 
 
 void myDrawCirc(int x, int y, int rad) {
-  //redux, this is v2. v1 is worst girl
-  //measuring angle in degrees
-  //nevermind, doing radians because base cos/sin use that
-
   double theta = 0;
   double halfACircle = M_PI;
   int quality = 100;
   double dTheta = M_PI / quality;
   int c1x, c2x, c1y, c2y;
   while(theta < halfACircle) {
-    //find c1x, c1y
     c1x = x + rad * cos(theta);
     c1y = y + rad * sin(theta);
-    //find c2x, c2y
     c2x = x;
     c2y = y - rad * sin(theta);
-    fprintf(stderr, "(%d, %d) and (%d, %d) were corners\n", c1x, c1y, c2x, c2y);
     myDrawRect(c1x, c1y, c2x, c2y);
     theta += dTheta;
   }
@@ -210,9 +197,6 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
       int g;
       int b;
       int scrmble = layers;
-      //find delta, will be different for y and x
-      //y, take ((y2 - y1) / 2) / layers
-      //x, take ((x2 - x1) / 2) / layers
       int dx, dy;
       dx = ((x2 - x1) / 2) / layers;
       dy = ((y2 - y1) / 2) / layers;
@@ -236,22 +220,16 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
 
 
 void drawNPC(NPC_t* npc) {
-  //issue here, is sort of alligning it with drawnMap/drawnScreen
-  //or, corretly translating a base posiiton to where it will be actually be drawn
-  //see, issue here is, destRect is not offset at all by what drawnScreen Is
-  //just add drawnMap.x/y to respective destRect?
   SDL_Rect srcRect, destRect;
-  destRect.x = npc->position->posX * TILED + drawnScreen.x;
-  destRect.y = npc->position->posY * TILED + drawnScreen.y;
+  destRect.x = npc->pixelPos->pixPosX + drawnScreen.x;
+  destRect.y = npc->pixelPos->pixPosY + drawnScreen.y;
   destRect.w = TILED;
   destRect.h = TILED;
   if (destRect.x + TILED < cameraPos->pixPosX - (SCREEN_WIDTH / 2) ||
-      destRect.x > cameraPos->pixPosX + (SCREEN_WIDTH / 2)) {
-    //outside of screen, don't draw
+      destRect.x - TILED > cameraPos->pixPosX + (SCREEN_WIDTH / 2)) {
   }
   else if (destRect.y + TILED < cameraPos->pixPosY - (SCREEN_HEIGHT / 2) ||
-	   destRect.y > cameraPos->pixPosY + (SCREEN_HEIGHT / 2)) {
-    //outside of screen, don't draw
+	   destRect.y - TILED > cameraPos->pixPosY + (SCREEN_HEIGHT / 2)) {
   }
   else {
     if (npc->animState->holder->sprite_sheet != NULL && 0) {

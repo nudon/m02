@@ -5,8 +5,6 @@
 #include "myMap.h"
 #include "myImage.h"
 #include "myNPC.h"
-//also, some very bizare behavior with renderer, top and bottom boundaries are normal
-//but left and right boundaries, approaching them causes screen to stretch out, then reset to original render draw color
 
 //prototypes 
 static int init();
@@ -35,18 +33,10 @@ tile_map_t* activeMap = NULL;
 const int SCREEN_WIDTH = 480;
 const int SCREEN_HEIGHT = 360;
 const int SLEEP_TIME_MS = 25;
-
-
-
   
 //so, m02. Goal is to somehow get a basic topdown view going
 //basic controls, have some image as a background
 //additionally, having some other animate creatures
-
-
-//currently segfaulting randomly when touching SDL things
-//looks like it's usually from calls to malloc 
-
 
 int main(int argc, char** args) {
   quit = 0;
@@ -77,18 +67,31 @@ int main(int argc, char** args) {
   return 0;
 }
 
+static void startDebugPopulate() {
+    NPC_t* mc = createNPC();
+    makeMC(mc);
+    setNPCPositionByCord(mc, 1 , 1);
+    //prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
+    /*
+    NPC_t* tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 8, 8);
+    prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(tori));
+    */
+    
+    NPC_t* tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 8, 8);
+    //prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(tori));
+}
+
 static int startDebug() {
   int fail = 0;
   activeMap = debugMap();
   if (activeMap != NULL) {
     currMapBG = cinterTiles(activeMap, gRan);
     if (currMapBG != NULL) {
-    NPC_t* mc = createNPC();
-    makeMC(mc);
-    mc->position->posX = 0;
-    mc->position->posY = 0;
-    setNPCPositionByCord(mc, 0 , 0);
-    prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
+      startDebugPopulate();
     }
     else {
       fprintf(stderr, "Failed to cinter background tiles\n");
@@ -104,21 +107,17 @@ static int startDebug() {
 
 
 void setDrawnMap() {
-  //confused src rect and dst rect somewhat
-  //might have been bacuse i hadn't set a dst rect globally, 
   tile_map_t * map = activeMap;
   npc_pos_t* currentPos = cameraPos;
   if (map->rows * TILED < SCREEN_HEIGHT) {
     drawnMap.y = 0;
     drawnMap.h = map->rows * TILED;
     drawnScreen.y =  (SCREEN_HEIGHT - map->rows * TILED) / 2;
-    //    drawnScreen.h = map->rows * TILED;
   }
   else {
     drawnMap.y = currentPos->pixPosY - (SCREEN_HEIGHT / 2);
     drawnMap.h = SCREEN_HEIGHT;
     drawnScreen.y = 0;
-    //    drawnScreen.h = SCREEN_HEIGHT;
   }
   drawnScreen.h = drawnMap.h;
   
@@ -126,13 +125,11 @@ void setDrawnMap() {
     drawnMap.x = 0;
     drawnMap.w = map->cols * TILED;
     drawnScreen.x =  (SCREEN_WIDTH - map->cols * TILED) / 2;
-    //    drawnScreen.w = map->cols * TILED;
   }
   else {
     drawnMap.x = currentPos->pixPosX - (SCREEN_WIDTH / 2);
     drawnMap.w = SCREEN_WIDTH;
     drawnScreen.x = 0;
-    //    drawnScreen.w = SCREEN_WIDTH;
   }
   drawnScreen.w = drawnMap.w;
   
@@ -148,8 +145,6 @@ void setDrawnMap() {
   if (drawnMap.x > map->cols * TILED) {
     drawnMap.x = map->cols * TILED;
   }
-
-  //set cameraPos to middle of drawn map
   cameraPos->pixPosX = drawnMap.x + (drawnMap.w / 2);
   cameraPos->pixPosY = drawnMap.y + (drawnMap.h / 2);
 }
@@ -167,7 +162,6 @@ void gameLoop() {
     SDL_RenderCopy(gRan, currMapBG, &drawnMap, &drawnScreen);
     drawAllNPCS(activeMap->allNPCS);
     SDL_Delay(updateWait);
-    fprintf(stderr, "iteration\n");
     SDL_RenderPresent(gRan);
   }
 } 
@@ -222,7 +216,6 @@ int init() {
 
 int loadMedia() {
   int fail = 0;
-  //load any photos or logos here
   return fail;
 }
 
