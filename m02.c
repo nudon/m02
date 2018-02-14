@@ -71,18 +71,29 @@ static void startDebugPopulate() {
     NPC_t* mc = createNPC();
     makeMC(mc);
     setNPCPositionByCord(mc, 1 , 1);
-    //prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(mc));
-    /*
-    NPC_t* tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 8, 8);
-    prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(tori));
-    */
+    addNPC(mc);
     
     NPC_t* tori = createNPC();
     makeNPC(tori);
     setNPCPositionByCord(tori, 8, 8);
-    //prependToNPC_list(activeMap->allNPCS->idleNPC, createNPC_node(tori));
+    addNPC(tori);
+
+    /*
+    tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 8, 8);
+    addNPC(tori);
+    */
+
+    tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 7, 7);
+    addNPC(tori);
+    
+    tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 9, 9);
+    addNPC(tori);
 }
 
 static int startDebug() {

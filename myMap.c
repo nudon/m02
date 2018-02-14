@@ -143,8 +143,8 @@ tile_t* getTileFromMapCord(tile_map_t* map, int y, int x) {
 }
 
 void drawAllNPCS(NPC_move_list* list) {
-  drawNPCList(list->idleNPC);
-  drawNPCList(list->moveNPC);
+  drawNPCList(list->idleList);
+  drawNPCList(list->moveList);
 }
 
 void drawNPCList(NPC_list_t* list) {

@@ -6,16 +6,14 @@
 #include "temp.h"
 #include "myImage.h"
 
+//structs
 typedef
 struct {
   //thinking of putting a magic pixel in upper left hand corner of valid sprite
   //handles issue of having jagged arrays of sprite clips in a single sheet
-  //would call some generic function to advance a frame of animation
-  //would load the clip
   //would check if the next sprite over has the magic pixel in the corner
   //think you can read straight pixel  values from surface
   //and if the magic pixel isn't there, wrap around to zero
-  //alternatively keep a list of the number of cols indexed by rows
   int sprite_width;
   int sprite_height;
   int rows;
@@ -61,19 +59,21 @@ struct {
   NPC_node_t* end;
 } NPC_list_t;
 
+//want to change names to idle/moveList
 typedef
 struct {
-  NPC_list_t* idleNPC;
-  NPC_list_t* moveNPC;
+  NPC_list_t* idleList;
+  NPC_list_t* moveList;
 } NPC_move_list;
 
+//NPC stuff
 NPC_t* createNPC();
-
-void freeNPC(NPC_t* npc);
 
 void makeMC(NPC_t* slate);
 
 void makeNPC(NPC_t* slate);
+
+void freeNPC(NPC_t* npc);
 
 void setNPCPosition(NPC_t* npc, tile_pos_t* pos);
 
@@ -85,21 +85,28 @@ void setTilePositionByCord(tile_pos_t* npcPos, int x, int y);
 
 void loadSpriteMC(sprite_holder_t* holder);
 
-static void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
-static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
-
-static void removeFromNPC_list(NPC_list_t* list, NPC_t* ID);
-
-NPC_move_list* createNPC_move_list();
-
-NPC_list_t* createNPC_list();
-
+//NPC_node stuff
 NPC_node_t* createNPC_node(NPC_t* npc);
 
 void freeNPC_node(NPC_node_t* npcNode);
 
+//NPC_list stuff
+NPC_move_list* createNPC_move_list();
+
+NPC_list_t* createNPC_list();
+
 void freeNPC_list(NPC_list_t* npcList);
+
+void addNPC(NPC_t* npc); //creates node and adds to idle list
+
+void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode);
+
+void changeToIdleList(NPC_move_list* totNPC, NPC_node_t* npcNode);
+
+void printNPCList(NPC_list_t* list);
+
+//utilities and whatnot
 
 int equalTilePos(tile_pos_t* t1, tile_pos_t* t2);
 
@@ -116,12 +123,6 @@ int validPos(tile_pos_t* tile);
 void positionShift(NPC_t* npc, int* shiftPos, int shiftAmount);
 
 void updateNPCPos(NPC_t* npc);
-
-void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode);
-
-void changeToIdleList(NPC_move_list* totNPC, NPC_node_t* npcNode);
-
-void printNPCList(NPC_list_t* list);
 
 #include "myMap.h"
 
