@@ -32,7 +32,7 @@ tile_t** debugTilesInit() {
       debugTiles[i][j] = (tile_t) {.tilePath = blackTile,
 				   .tileContents = NULL,
 				   .isWall = 0,};
-      if (i * j % 2 == 0) {
+      if ((j + (i % 2)) % 2 == 0) {
 	debugTiles[i][j].tilePath = whiteTile;
       }
     }
@@ -202,8 +202,11 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
       dy = ((y2 - y1) / 2) / layers;
       for (int i = 0; i <  layers; i++) {
 	r = 255 * mSq(sin(i * M_PI/scrmble));
+	r = r << (sizeof(int) / 2);
 	g = 255 * mSq(cos(i * M_PI/scrmble));
+	g = g << (sizeof(int) / 2);
 	b = 255 * mSq(tan(i * M_PI/scrmble));
+	b = b << (sizeof(int) / 2);
 	SDL_SetRenderDrawColor( gRan, r, g, b, 0xFF );
 	myDrawRect( x1 + dx * i, y1 + dy * i, x2 - dx * i, y2 - dy * i);
       }
@@ -239,8 +242,7 @@ void drawNPC(NPC_t* npc) {
       srcRect.w = npc->animState->holder->sprite_width;
       srcRect.h = npc->animState->holder->sprite_height;
       //odd thing here, constraning sprite to a single tile
-      //would be kind of odd to implement
-      //width/height would be same as srcs
+      //would be kind of odd to implement things spanning multiple tiles
       //if things are just tall, y dimension would be different
       //if things are wide, would either have to change things, or do the classic
       //clobber wide monsters into 4 sub monsters that move in unison. 
@@ -256,8 +258,13 @@ void drawNPC(NPC_t* npc) {
 	myDrawFunRect(destRect.x, destRect.y, destRect.x + destRect.w, destRect.y + destRect.h, 5);
       }
       else {
+	
+
 	SDL_SetRenderDrawColor( gRan, 0x00, 0x00, 0x00, 0xFF );
 	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 2);
+
+	SDL_SetRenderDrawColor( gRan, 0xff, 0xff, 0xff, 0xFF );
+	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 3);
       }
     }
   }

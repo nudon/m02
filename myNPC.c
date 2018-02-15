@@ -7,7 +7,7 @@ static void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
-static void removeFromNPC_list(NPC_list_t* list, NPC_t* ID);
+static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node);
 
 
 extern SDL_Renderer* gRan;
@@ -115,12 +115,12 @@ void addNPC(NPC_t* npc) {
 }
 void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   //  printf("moving to moveList: %d\n", npcNode->storedNPC->npcID);
-  removeFromNPC_list(totNPC->idleList, npcNode->storedNPC);
+  removeFromNPC_list(totNPC->idleList, npcNode);
   prependToNPC_list(totNPC->moveList, npcNode);
 }
 void changeToIdleList(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   //  printf("moving to idleList: %d\n", npcNode->storedNPC->npcID);
-  removeFromNPC_list(totNPC->moveList, npcNode->storedNPC);
+  removeFromNPC_list(totNPC->moveList, npcNode);
   prependToNPC_list(totNPC->idleList, npcNode);
 }
 
@@ -177,15 +177,13 @@ static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new) {
 
 }
 
-static void removeFromNPC_list(NPC_list_t* list, NPC_t* ID) {
+//pretty sure I can rewrite this to take out list traversal
+//just need to have it take npcnode as an arguement
+static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node) {
   //   printf("removing node %d\n", ID->npcID);
   //printf("list at start: ");
   //printNPCList(list);
   //from begining search
-  NPC_node_t* node = list->start; 
-  while(node != NULL && node->storedNPC != ID) {
-    node = node->next;
-  }
   if (node != NULL) {
     if (node->prev == NULL && node->next == NULL) {
       list->start = NULL;
@@ -208,11 +206,6 @@ static void removeFromNPC_list(NPC_list_t* list, NPC_t* ID) {
     node->next = NULL;
     node->prev = NULL;
   }
-  else {
-    //fprintf(stderr, "Error on attempting to remove NPC from list, npc not in list\n");
-  }
-  //    printf("list at end: ");
-  //    printNPCList(list);
 }
 
 

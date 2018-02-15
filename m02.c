@@ -19,12 +19,16 @@ static int  startDebug();
 
 static void gameLoop();
 
+void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+
 
 //Globals
 SDL_Window* gWin = NULL;
 SDL_Renderer* gRan = NULL;
 int quit = 0;
 npc_pos_t* cameraPos;
+SDL_Color backgroundColor;
 
 SDL_Rect drawnScreen;
 SDL_Rect drawnMap;
@@ -166,6 +170,7 @@ void gameLoop() {
   float updateWait = 15;
   setDrawnMap();
   while(!quit) {
+    setBGColor(0,0,0,0xff);
     SDL_RenderClear(gRan);
     pickDestLoop(activeMap->allNPCS);
     moveDestLoop(activeMap->allNPCS);
@@ -240,4 +245,8 @@ void myClose() {
   IMG_Quit();
   free(currMapBG);
   SDL_Quit();
+}
+
+void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+  SDL_SetRenderDrawColor(gRan, r, g, b, a);
 }

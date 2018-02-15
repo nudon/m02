@@ -59,7 +59,7 @@ struct {
   NPC_node_t* end;
 } NPC_list_t;
 
-//want to change names to idle/moveList
+
 typedef
 struct {
   NPC_list_t* idleList;
