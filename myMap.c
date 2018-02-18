@@ -22,16 +22,44 @@ tile_map_t* debugMap() {
   return debugMap;
 }
 
+tile_t * createTile(char* textPath, int x, int y) {
+  tile_t* tile = malloc(sizeof(tile_t));
+  tile->tilePath = textPath;
+  tile->tileContents = malloc(sizeof(item_t*) * 12);
+  tile->tilePosition = createTilePos(x,y);
+  return tile;
+			
+}
+
+void freeTile(tile_t* tile) {
+  freeTilePos(tile->tilePosition);
+  free(tile->tileContents);
+  free(tile);
+}
+
+void freeMap(tile_map_t* map) {
+  freeNPC_list(map->allNPCS->idleList);
+  freeNPC_list(map->allNPCS->moveList);
+  free(map->allNPCS);
+  for (int col = 0; col < map->cols; col++) {
+    for (int row = 0; row < map->rows; row++) {
+      free(map->cells[col][row].tilePosition);
+      free(map->cells[col][row].tileContents);
+    }
+    free(map->cells[col]);
+  }
+}
+
+//getting an issue here, think it's the funky way Im assigning to debugTiles[i][j]
+//try either the old way, or rework debugTiles to be a 
 tile_t** debugTilesInit() {
   char* blackTile = "/home/nudon/prg/gam/media/black.png";
   char* whiteTile = "/home/nudon/prg/gam/media/white.png";
   tile_t** debugTiles = malloc(sizeof(tile_t*) * 16);
   for (int i = 0; i < 16; i++) {
-    debugTiles[i] = (tile_t*) malloc(sizeof(tile_t) * 16);
+    debugTiles[i] =  (tile_t*)malloc(sizeof(tile_t) * 16);
     for (int j = 0; j < 16; j++) {
-      debugTiles[i][j] = (tile_t) {.tilePath = blackTile,
-				   .tileContents = NULL,
-				   .isWall = 0,};
+      debugTiles[i][j] = *(createTile(blackTile, j,i));
       if ((j + (i % 2)) % 2 == 0) {
 	debugTiles[i][j].tilePath = whiteTile;
       }
@@ -135,11 +163,16 @@ SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
 
 
 tile_t* getTileFromMapPos(tile_map_t* map, tile_pos_t* pos) {
-  return getTileFromMapCord(map, pos->posY, pos->posX);
+  return getTileFromMapCord(map, pos->posX, pos->posY);
 }
 
-tile_t* getTileFromMapCord(tile_map_t* map, int y, int x) {
-  return &(map->cells[x][y]);
+tile_t* getTileFromMapCord(tile_map_t* map, int x, int y) {
+  if (x >= map->rows || x < 0 || y >= map->cols || y < 0) {
+    return NULL;
+  }
+  else {
+    return &(map->cells[y][x]);
+  }
 }
 
 void drawAllNPCS(NPC_move_list* list) {
@@ -272,10 +305,10 @@ void drawNPC(NPC_t* npc) {
 
 
 int isAWall(tile_t* tile) {
-  if (tile->isWall == 0) {
-    return 0;
+  if (tile == NULL || tile->isWall == 1) {
+    return 1;
   }
   else {
-    return 1;
+    return 0;
   }
 }

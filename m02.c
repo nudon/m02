@@ -5,6 +5,8 @@
 #include "myMap.h"
 #include "myImage.h"
 #include "myNPC.h"
+#include "myMapSections.h"
+#include "gameState.h"
 
 //prototypes 
 static int init();
@@ -19,7 +21,12 @@ static int  startDebug();
 
 static void gameLoop();
 
+void pauseMenu();
+
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+
+
+//enum GameState state;
 
 
 
@@ -29,6 +36,7 @@ SDL_Renderer* gRan = NULL;
 int quit = 0;
 npc_pos_t* cameraPos;
 SDL_Color backgroundColor;
+static int updateWait = 15;
 
 SDL_Rect drawnScreen;
 SDL_Rect drawnMap;
@@ -41,6 +49,24 @@ const int SLEEP_TIME_MS = 25;
 //so, m02. Goal is to somehow get a basic topdown view going
 //basic controls, have some image as a background
 //additionally, having some other animate creatures
+
+//done with that, next thing that would be nice is get a map editor going
+
+//also, thought about how I would implement traveling between zones.
+//Essentially I'd have some additional fields on tiles, usually set to null
+//would contain another tile_map_t, which it would travel to, and also a tile positio to load to
+//on input, or maybe automatically, would load the map and set position as specified
+
+//other things to do, get basic animation working. This means setting up sprite sheets
+//and also updating draw functions to iterate over the correct sprite cycle. might need more flags
+
+//beyond that, get my map section code worked out, or not.
+//going to try this actually. have idea of getting it to compile first, then setting sections
+//then changing color of tile based on sections, just to get a visual indication of stuff
+
+//also, look into storing/reading maps to/from files. Or if not maps, at least specific information, for stuff like saves
+
+//also maybe start playing around with what items should be. 
 
 int main(int argc, char** args) {
   quit = 0;
@@ -103,6 +129,7 @@ static void startDebugPopulate() {
 static int startDebug() {
   int fail = 0;
   activeMap = debugMap();
+  //makeSections(activeMap);
   if (activeMap != NULL) {
     currMapBG = cinterTiles(activeMap, gRan);
     if (currMapBG != NULL) {
@@ -166,17 +193,25 @@ void setDrawnMap() {
 
 
 void gameLoop() {
-  //1 second / frames per second * second / milisecond
-  float updateWait = 15;
   setDrawnMap();
   while(!quit) {
     setBGColor(0,0,0,0xff);
     SDL_RenderClear(gRan);
-    pickDestLoop(activeMap->allNPCS);
-    moveDestLoop(activeMap->allNPCS);
-    setDrawnMap();
+
+    //gameRun functions
+    if(state == GAMERUN) {
+      pickDestLoop(activeMap->allNPCS);
+      moveDestLoop(activeMap->allNPCS);
+      setDrawnMap();
+    }
     SDL_RenderCopy(gRan, currMapBG, &drawnMap, &drawnScreen);
     drawAllNPCS(activeMap->allNPCS);
+    //gamePause functions
+    if(state == GAMEPAUSE) {
+      pauseMenu();
+    }
+    
+
     SDL_Delay(updateWait);
     SDL_RenderPresent(gRan);
   }
@@ -203,7 +238,10 @@ int init() {
       if (gRan != NULL) {
 	SDL_SetRenderDrawColor(gRan, 0xff, 0xff, 0xff, 0xff);
 	int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
-	if (!(IMG_Init(imgFlags) & imgFlags)) {
+	if ((IMG_Init(imgFlags) & imgFlags)) {
+	  state = GAMERUN;
+	}
+	else {
 	  fail = 4;
 	  fprintf(stderr, "Error in loading img loading librarys: %s \n",
 		  IMG_GetError());
@@ -236,6 +274,7 @@ int loadMedia() {
 }
 
 void myClose() {
+  freeMap(activeMap);
   SDL_DestroyTexture(currMapBG);
   currMapBG = NULL;
   SDL_DestroyRenderer(gRan);
@@ -246,7 +285,26 @@ void myClose() {
   free(currMapBG);
   SDL_Quit();
 }
-
+void handlePauseInput(SDL_Event e) {
+  switch(e.key.keysym.sym){
+  case SDLK_ESCAPE:
+    state = GAMERUN;
+  default:
+    break;
+  }
+}
+void pauseMenu() {
+  SDL_Event e;
+  
+  while(SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      quit = 1;
+    }
+    else {
+      handlePauseInput(e);
+    }
+  }
+}
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   SDL_SetRenderDrawColor(gRan, r, g, b, a);
 }

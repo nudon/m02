@@ -21,7 +21,7 @@ struct {
 typedef
 struct {
   char* tilePath;
-  item_t tileContents[12];
+  item_t* tileContents;
   tile_pos_t* tilePosition;
   int isWall;  
 } tile_t;
@@ -33,6 +33,12 @@ struct {
   tile_t** cells;
   NPC_move_list* allNPCS;
 } tile_map_t;
+
+tile_t* createTile(char* path, int x, int y);
+
+void freeTile(tile_t* tile);
+
+void freeMap(tile_map_t* map);
 
 tile_map_t* debugMap();
 tile_t** debugTilesInit();

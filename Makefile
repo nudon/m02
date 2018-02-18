@@ -19,7 +19,7 @@ IMAGE = $(MO2)"myImage.o"
 LL = $(DIRNAVSRC) 
 
 #Linkied objects
-LO = myImage.o myMap.o myNPC.o
+LO = myImage.o myMap.o myNPC.o temp.o
 
 ALLOBJO = $(OBJO) $(LO)
 
@@ -39,10 +39,7 @@ GETMATH = "-lm"
 # $@ is a macro for name of rule
 # $^ is all the deps for the rule
 # $< is just the first dep for rule.
-# not sure why it's used in the .o files, but it werks
 
-#old stuff incase I want to unclud dirNav from the utilDir
-#+$(MAKE) -C $(DIRNAV)
 m02 : $(ALLOBJO)
 	$(CC) $(COMPILER_FLAGS) -o $@ $^ $(TOTCONFIG) 
 m02.o : m02.c
@@ -52,6 +49,8 @@ myMap.o : myMap.c myImage.c
 myImage.o : myImage.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 myNPC.o : myNPC.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+temp.o : temp.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 clear:
 	rm $(ALLOBJO) m02

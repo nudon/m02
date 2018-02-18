@@ -11,4 +11,6 @@ struct {
 } tile_pos_t;
 
 
+tile_pos_t* createTilePos(int x, int y);
+void freeTilePos(tile_pos_t* tilePos);
 #endif

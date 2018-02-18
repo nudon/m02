@@ -85,6 +85,7 @@ void setTilePositionByCord(tile_pos_t* npcPos, int x, int y);
 
 void loadSpriteMC(sprite_holder_t* holder);
 
+void alignNPCToPos(NPC_t* npc, tile_pos_t* pos);
 
 //NPC_node stuff
 NPC_node_t* createNPC_node(NPC_t* npc);
@@ -108,6 +109,10 @@ void printNPCList(NPC_list_t* list);
 
 //utilities and whatnot
 
+void setDestByTile(NPC_node_t* node, tile_pos_t* tile);
+
+void setDestByCord(NPC_node_t* node, int x, int y);
+
 int equalTilePos(tile_pos_t* t1, tile_pos_t* t2);
 
 void pickDest(NPC_move_list* npcList, NPC_node_t* npcNode);
@@ -120,7 +125,7 @@ void moveDestLoop(NPC_move_list* npcList);
 
 int validPos(tile_pos_t* tile);
 
-void positionShift(NPC_t* npc, int* shiftPos, int shiftAmount);
+void positionShift(NPC_node_t* npcNode, int* shiftPos, int shiftAmount);
 
 void updateNPCPos(NPC_t* npc);
 

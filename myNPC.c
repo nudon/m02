@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "myNPC.h"
+#include "gameState.h"
 #include <assert.h>
 
 //static prototype
@@ -9,9 +10,197 @@ static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node);
 
-
 extern SDL_Renderer* gRan;
 extern tile_map_t* activeMap;
+
+//extern GameState state;
+
+void pickDestLoop(NPC_move_list* npcList) {
+  //printf("here is idle list:");
+  //printNPCList(npcList->idleList);
+  NPC_node_t* current = npcList->idleList->start;
+  NPC_node_t* temp;
+  while(current != NULL) {
+    temp = current;
+    current = current->next;
+    pickDest(npcList, temp);
+  }
+}
+
+void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
+  uint8_t lFlags = npcNode->storedNPC->flags;
+  tile_pos_t* pos = npcNode->storedNPC->position;
+  if (lFlags == 1) {
+    singleInput(npcNode);
+    if (!equalTilePos(npcNode->dest, pos)) {
+      changeToMoveList(totNPC, npcNode);
+    }
+  }
+  else {
+    int random = rand();
+    if (random % 5 == 0) {
+    }
+    else {
+      if (random % 4 == 0) {
+	setDestByCord(npcNode, pos->posX - 1, pos->posY);
+      } else if (random % 3 == 0) {
+	setDestByCord(npcNode, pos->posX, pos->posY - 1);
+      } else if (random % 2 == 0) {
+	setDestByCord(npcNode, pos->posX, pos->posY + 1);
+      } else {
+	setDestByCord(npcNode, pos->posX + 1, pos->posY);
+      }
+      changeToMoveList(totNPC, npcNode);
+    }
+  }
+}
+void setDestByTile(NPC_node_t* node, tile_pos_t* tile) {
+  setDestByCord(node, tile->posX, tile->posY);
+}
+
+void setDestByCord(NPC_node_t* node, int x, int y) {
+  node->dest->posX = x;
+  node->dest->posY = y;
+}
+void moveDestLoop(NPC_move_list* npcList) {
+  //printf("here is move list:");
+  //printNPCList(npcList->moveList);
+  NPC_node_t* current = npcList->moveList->start;
+  NPC_node_t* temp;
+  while(current != NULL) {
+    temp = current;
+    current = current->next;
+    moveToDest(npcList, temp);
+  }
+}
+
+void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
+  //what am I doing here
+  //have dx and dy, deltas of current pos to dest pos
+  //have sx and sy, which indicate sign of dx or dy
+  int lSpeed = npcNode->storedNPC->speed;
+  lSpeed = lSpeed / TILED ;  
+  int dx, dy, sx, sy;
+  dx = npcNode->dest->posX * TILED - npcNode->storedNPC->pixelPos->pixPosX;
+  dy = npcNode->dest->posY * TILED - npcNode->storedNPC->pixelPos->pixPosY;
+  sx = 1;
+  sy = 1;
+  if (dx < 0) {
+    sx = -1;
+  }
+  if (dy < 0) {
+    sy = -1;
+  }
+  if (dy == 0) {
+    positionShift(npcNode, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
+  }
+  else if (dx == 0) {
+    positionShift(npcNode, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
+  }
+  else {
+    if (rand() % 2 == 0) {
+      positionShift(npcNode, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
+    }
+    else {
+      positionShift(npcNode, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
+    }
+  }
+  //checking this if I messed up speed and overshot on last adjustment
+  //just recalculating dx and dy, and making sure signs didn't switch
+  dx = npcNode->dest->posX * TILED - npcNode->storedNPC->pixelPos->pixPosX;
+  dy = npcNode->dest->posY * TILED - npcNode->storedNPC->pixelPos->pixPosY;
+  assert((dx <= 0 && sx <= 0) || (dx >= 0 && sx >= 0));
+  assert((dy <= 0 && sy <= 0) || (dy >= 0 && sy >= 0));
+  if (dx == 0 && dy == 0) {
+    changeToIdleList(totNPC, npcNode);
+  }
+}
+
+void positionShift(NPC_node_t* npcNode, int* shiftPos, int shiftAmount) {
+  *shiftPos = *shiftPos +  shiftAmount;
+  updateNPCPos(npcNode->storedNPC);
+  if (!validPos(npcNode->storedNPC->position)) {
+    *shiftPos = *shiftPos - shiftAmount;
+    updateNPCPos(npcNode->storedNPC);
+    setNPCPosition(npcNode->storedNPC, npcNode->storedNPC->position);
+    setDestByTile(npcNode, npcNode->storedNPC->position);
+  }
+}
+
+int validPos(tile_pos_t* tile) {
+  if(tile->posX < 0 || tile->posX >= activeMap->cols) {
+    return 0;
+  }
+  else if(tile->posY < 0 || tile->posY >= activeMap->rows) {
+    return 0;
+  }
+  else if(isAWall(getTileFromMapPos(activeMap,tile))) {
+    return 0;
+  }
+  return 1;
+}
+
+void updateNPCPos(NPC_t* npc) {
+  int tileOffset = npc->pixelPos->pixPosX - npc->position->posX * TILED;  
+  if ( tileOffset >= TILED / 2 || tileOffset <= -TILED / 2) {
+    npc->position->posX += round((double)tileOffset / TILED);
+  }
+  tileOffset = npc->pixelPos->pixPosY - npc->position->posY * TILED;
+  if ( tileOffset >= TILED / 2 || tileOffset <= -TILED / 2) {
+    npc->position->posY += round((double)tileOffset / TILED);
+  }
+}
+
+extern int quit;
+void singleInput(NPC_node_t* npcNode) {
+  //think the bug about being able to move diagonally is here
+  //since handling poll events in while loop
+  //heard that not doing things in loop is bad, essentially inputs just buffer up
+  //kind of hard to pull off right now, don't think I want to wait(to make it easier)
+  //if I did that, whole game would essentially just sit and wait for userinput
+  //easy to get rid of, just set some int, and essentially deplete pollevent
+  //might also be some flush thing I could use
+  SDL_Event e;
+  while(SDL_PollEvent(&e) != 0 && state == GAMERUN) {
+    if (e.type == SDL_QUIT) {
+      quit = 1;
+    }
+    else if (e.type == SDL_KEYDOWN) {
+      handleSingleInput(npcNode, e);
+    }
+  }
+  if (state == GAMEPAUSE) {
+    while(SDL_PollEvent(&e) != 0) {
+      
+    }
+  }
+  
+}
+
+void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {
+  tile_pos_t* pos =  npcNode->storedNPC->position;
+  switch (e.key.keysym.sym){
+  case SDLK_UP:
+    setDestByCord(npcNode, pos->posX, pos->posY - 1);
+
+    break;		
+  case SDLK_DOWN:
+    npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
+    break;
+  case SDLK_LEFT:
+    npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
+    break;
+  case SDLK_RIGHT:
+    npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
+    break;
+  case SDLK_ESCAPE:
+    state = GAMEPAUSE;
+  default:
+    break;      
+  }
+  return;
+}
+
 
 NPC_t* createNPC() {
   NPC_t* newNPC = malloc(sizeof(NPC_t));
@@ -43,6 +232,9 @@ void makeNPC(NPC_t* slate) {
 void freeNPC(NPC_t* npc) {
   //bit of a pickle here, since the npc_sprite_holder is shared among npcs
   //might just need to maintain a list of unique spritesheets, then free at end
+  free(npc->position);
+  free(npc->pixelPos);
+  free(npc->animState);
   free(npc);
 }
 
@@ -83,6 +275,7 @@ NPC_node_t* createNPC_node(NPC_t* npc) {
 }
 
 void freeNPC_node(NPC_node_t* npcNode) {
+  freeNPC(npcNode->storedNPC);
   free(npcNode->dest);
   free(npcNode);
 }
@@ -103,12 +296,15 @@ NPC_list_t* createNPC_list() {
 
 void freeNPC_list(NPC_list_t* npcList) {
   NPC_node_t* current = npcList->start;
+  NPC_node_t* temp  = current;
   while(current != NULL) {
-    current = current->next;
-    freeNPC_node(current->prev);
+    temp = current;
+    current = temp->next;
+    freeNPC_node(temp);
   }
   free(npcList);
 }
+
 
 void addNPC(NPC_t* npc) {
   prependToNPC_list(activeMap->allNPCS->idleList, createNPC_node(npc));
@@ -219,191 +415,4 @@ int equalTilePos(tile_pos_t* t1, tile_pos_t* t2) {
   }
 }
 
-void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
-  uint8_t lFlags = npcNode->storedNPC->flags;
-  if (lFlags == 1) {
-    singleInput(npcNode);
-    if (!equalTilePos(npcNode->dest, npcNode->storedNPC->position)) {
-      changeToMoveList(totNPC, npcNode);
-    }
-  }
-  else {
-    int random = rand();
-    if (random % 5 == 0) {
-    }
-    else {
-      if (random % 4 == 0) {
-	npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
-      } else if (random % 3 == 0) {
-	npcNode->dest->posY = npcNode->storedNPC->position->posY - 1;
-      } else if (random % 2 == 0) {
-	npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
-      } else {
-	npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
-      }
-      changeToMoveList(totNPC, npcNode);
-    }
-  }
-}
 
-int validPos(tile_pos_t* tile) {
-  int val = 1;
-  if(tile->posX < 0 || tile->posX >= activeMap->cols)
-    val = 0;
-  else if(tile->posY < 0 || tile->posY >= activeMap->rows)
-    val = 0;
-  else if(isAWall(getTileFromMapPos(activeMap,tile)))
-    val = 0;
-  return val;
-}
-
-void positionShift(NPC_t* npc, int* shiftPos, int shiftAmount) {
-  *shiftPos = *shiftPos +  shiftAmount;
-  updateNPCPos(npc);
-  if (!validPos(npc->position)) {
-    //slight issue here, would just move thing 1 step before breaking
-    //would want to additionally clear/update npcDest
-    //and also move npc back entirely to a valid tile
-    *shiftPos = *shiftPos - shiftAmount;
-    updateNPCPos(npc);
-  }
-}
-
-void updateNPCPos(NPC_t* npc) {
-  int tileOffset = npc->pixelPos->pixPosX - npc->position->posX * TILED;  
-  if ( tileOffset > TILED / 2 || tileOffset < -TILED / 2) {
-    npc->position->posX += round((double)tileOffset / TILED);
-  }
-  tileOffset = npc->pixelPos->pixPosY - npc->position->posY * TILED;
-  if ( tileOffset > TILED / 2 || tileOffset < -TILED / 2) {
-    npc->position->posY += round((double)tileOffset / TILED);
-  }
-}
-
-void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
-  //what am I doing here
-  //have dx and dy, deltas of current pos to dest pos
-  //have sx and sy, which indicate sign of dx or dy
-  int lSpeed = npcNode->storedNPC->speed;
-  lSpeed = lSpeed / TILED ;  
-  int dx, dy, sx, sy;
-  dx = npcNode->dest->posX * TILED - npcNode->storedNPC->pixelPos->pixPosX;
-  dy = npcNode->dest->posY * TILED - npcNode->storedNPC->pixelPos->pixPosY;
-  sx = 1;
-  sy = 1;
-  if (dx < 0) {
-    sx = -1;
-  }
-  if (dy < 0) {
-    sy = -1;
-  }
-  if (dy == 0) {
-    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
-  }
-  else if (dx == 0) {
-    positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
-  }
-  else {
-    if (rand() % 2 == 0) {
-      positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosX), lSpeed * sx);
-    }
-    else {
-      positionShift(npcNode->storedNPC, &(npcNode->storedNPC->pixelPos->pixPosY), lSpeed * sy);
-    }
-  }
-  //checking this if I messed up speed and overshot on last adjustment
-  //just recalculating dx and dy, and making sure signs didn't switch
-  dx = npcNode->dest->posX * TILED - npcNode->storedNPC->pixelPos->pixPosX;
-  dy = npcNode->dest->posY * TILED - npcNode->storedNPC->pixelPos->pixPosY;
-  //fun thing here, with a npc walking around, somehow mc ends up in moveToDest
-  //trying to figure out how
-  //this was a fun bug
-  //printed out movelist each time, things weren't in there, somehow mc was getting in
-  //figured out, not wiping prev/next things when removing
-  //at least I think, that would explain how things are still getting linked outside of add/remove from lits funcs
-  //also, at some point the 2 form a cycle, and printnpcList just loops forever.
-  //also, somehow I'm still getting the cycle, but this time with just 1 element
-  //found a related issue, not sure exactly how it worked, but in the destloops, needed a temp var
-  //think it's related to me messing around with the list structure whilst attempting to itterate over loop
-  assert((dx <= 0 && sx <= 0) || (dx >= 0 && sx >= 0));
-  assert((dy <= 0 && sy <= 0) || (dy >= 0 && sy >= 0));
-  if (dx == 0 && dy == 0) {
-    changeToIdleList(totNPC, npcNode);
-  }
-}
-
-void pickDestLoop(NPC_move_list* npcList) {
-  //printf("here is idle list:");
-  //printNPCList(npcList->idleList);
-  NPC_node_t* current = npcList->idleList->start;
-  NPC_node_t* temp;
-  while(current != NULL) {
-    temp = current;
-    current = current->next;
-    pickDest(npcList, temp);
-  }
-}
-
-
-void moveDestLoop(NPC_move_list* npcList) {
-  //printf("here is move list:");
-  //printNPCList(npcList->moveList);
-  NPC_node_t* current = npcList->moveList->start;
-  NPC_node_t* temp;
-  while(current != NULL) {
-    temp = current;
-    current = current->next;
-    moveToDest(npcList, temp);
-
-  }
-}
-
-
-enum KeyPress {
-  KEY_PRESS_DEFAULT,
-  KEY_PRESS_UP,
-  KEY_PRESS_DOWN,
-  KEY_PRESS_LEFT,
-  KEY_PRESS_RIGHT,
-  KEY_PRESS_TOTAL
-};
-
-extern int quit;
-void singleInput(NPC_node_t* npcNode) {
-  //think the bug about being able to move diagonally is here
-  //since handling poll events in while loop
-  //heard that not doing things in loop is bad, essentially inputs just buffer up
-  //kind of hard to pull off right now, don't think I want to wait(to make it easier)
-  //if I did that, whole game would essentially just sit and wait for userinput
-  //easy to get rid of, just set some int, and essentially deplete pollevent
-  //might also be some flush thing I could use
-  SDL_Event e;
-  while(SDL_PollEvent(&e) != 0) {
-    if (e.type == SDL_QUIT) {
-      quit = 1;
-    }
-    else if (e.type == SDL_KEYDOWN) {
-      handleSingleInput(npcNode, e);
-    }
-  }
-}
-
-void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {
-  switch (e.key.keysym.sym){
-  case SDLK_UP:
-    npcNode->dest->posY = npcNode->storedNPC->position->posY - 1;
-    break;		
-  case SDLK_DOWN:
-    npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
-    break;
-  case SDLK_LEFT:
-    npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
-    break;
-  case SDLK_RIGHT:
-    npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
-    break;
-  default:
-    break;      
-  }
-  return;
-}
