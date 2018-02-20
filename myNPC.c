@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "myNPC.h"
 #include "gameState.h"
+#include "myInput.h"
 #include <assert.h>
 
 //static prototype
@@ -151,55 +152,6 @@ void updateNPCPos(NPC_t* npc) {
   }
 }
 
-extern int quit;
-void singleInput(NPC_node_t* npcNode) {
-  //think the bug about being able to move diagonally is here
-  //since handling poll events in while loop
-  //heard that not doing things in loop is bad, essentially inputs just buffer up
-  //kind of hard to pull off right now, don't think I want to wait(to make it easier)
-  //if I did that, whole game would essentially just sit and wait for userinput
-  //easy to get rid of, just set some int, and essentially deplete pollevent
-  //might also be some flush thing I could use
-  SDL_Event e;
-  while(SDL_PollEvent(&e) != 0 && state == GAMERUN) {
-    if (e.type == SDL_QUIT) {
-      quit = 1;
-    }
-    else if (e.type == SDL_KEYDOWN) {
-      handleSingleInput(npcNode, e);
-    }
-  }
-  if (state == GAMEPAUSE) {
-    while(SDL_PollEvent(&e) != 0) {
-      
-    }
-  }
-  
-}
-
-void handleSingleInput(NPC_node_t* npcNode, SDL_Event e) {
-  tile_pos_t* pos =  npcNode->storedNPC->position;
-  switch (e.key.keysym.sym){
-  case SDLK_UP:
-    setDestByCord(npcNode, pos->posX, pos->posY - 1);
-
-    break;		
-  case SDLK_DOWN:
-    npcNode->dest->posY = npcNode->storedNPC->position->posY + 1;
-    break;
-  case SDLK_LEFT:
-    npcNode->dest->posX = npcNode->storedNPC->position->posX - 1;
-    break;
-  case SDLK_RIGHT:
-    npcNode->dest->posX = npcNode->storedNPC->position->posX + 1;
-    break;
-  case SDLK_ESCAPE:
-    state = GAMEPAUSE;
-  default:
-    break;      
-  }
-  return;
-}
 
 
 NPC_t* createNPC() {

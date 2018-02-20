@@ -19,12 +19,17 @@ struct {
 } tile_dist_list_t;
 
 
+//util stuff
+void restrictTileToMap(tile_map_t* map, tile_pos_t* tile);
 
+void wrapTileToMap(tile_map_t* map, tile_pos_t* tile);
+
+int tileWithinMap( tile_map_t* map, tile_pos_t* tile);
 
 //stuff for detecting sections
 void setAvgDist(tile_map_t* map, tile_dist_node_t* theNode);
-void preMarkOffSect(tile_pos_t* center, tile_pos_t* tile);
-void markOffSect(tile_pos_t* c1, tile_pos_t* c2);
+void preMarkOffSect(tile_map_t* map, tile_pos_t* center, tile_pos_t* tile);
+void markOffSect(tile_map_t* map, tile_pos_t* c1, tile_pos_t* c2);
 int checkSquares(tile_dist_list_t* theList, tile_map_t* map, tile_pos_t* center, int loopCount);
 void makeSections(tile_map_t* map);
 int isAWall(tile_t* tile);

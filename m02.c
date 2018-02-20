@@ -7,6 +7,7 @@
 #include "myNPC.h"
 #include "myMapSections.h"
 #include "gameState.h"
+#include "myInput.h"
 
 //prototypes 
 static int init();
@@ -77,8 +78,8 @@ int main(int argc, char** args) {
 	SDL_RenderClear(gRan);
 	SDL_RenderCopy(gRan, logo, NULL, NULL);
 	SDL_RenderPresent(gRan);
+	SDL_Delay(100);
       }
-      SDL_Delay(100);
       if (startDebug() == 0) {
       	gameLoop();
       }
@@ -198,6 +199,7 @@ void gameLoop() {
     setBGColor(0,0,0,0xff);
     SDL_RenderClear(gRan);
 
+
     //gameRun functions
     if(state == GAMERUN) {
       pickDestLoop(activeMap->allNPCS);
@@ -211,7 +213,6 @@ void gameLoop() {
       pauseMenu();
     }
     
-
     SDL_Delay(updateWait);
     SDL_RenderPresent(gRan);
   }
@@ -285,26 +286,8 @@ void myClose() {
   free(currMapBG);
   SDL_Quit();
 }
-void handlePauseInput(SDL_Event e) {
-  switch(e.key.keysym.sym){
-  case SDLK_ESCAPE:
-    state = GAMERUN;
-  default:
-    break;
-  }
-}
-void pauseMenu() {
-  SDL_Event e;
-  
-  while(SDL_PollEvent(&e) != 0) {
-    if (e.type == SDL_QUIT) {
-      quit = 1;
-    }
-    else {
-      handlePauseInput(e);
-    }
-  }
-}
+
+
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   SDL_SetRenderDrawColor(gRan, r, g, b, a);
 }

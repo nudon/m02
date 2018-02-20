@@ -4,26 +4,10 @@ OBJO = m$(MYNUM).o
 #incase I want to change compiler suddenly, or gcc changes names
 CC = gcc
 
-#current path to prg
-PRG = "/home/nudon/prg/gam/sdl/"
-#util path
-UTIL = $(PRG)"util/"
-
-#DIRNAV = $(UTIL)"dirNav/"
-#DIRNAVSRC = $(DIRNAV)"dirNav.c"
-
-MAP = $(M02)"myMap.o"
-IMAGE = $(MO2)"myImage.o"
-
-#linked library
-LL = $(DIRNAVSRC) 
-
 #Linkied objects
-LO = myImage.o myMap.o myNPC.o temp.o
+LO = myImage.o myMap.o myNPC.o temp.o myInput.o
 
 ALLOBJO = $(OBJO) $(LO)
-
-ALLOBJ = $(OBJO) $(LO)
 
 COMPILER_FLAGS = -Wall -g
 
@@ -33,8 +17,10 @@ SDL_CONFIG  = `sdl2-config --cflags --libs` -lSDL2_image
 #things for threads
 THREAD = "-lpthread"
 
-TOTCONFIG = $(SDL_CONFIG) $(THREAD) $(GETMATH)
 GETMATH = "-lm"
+
+TOTCONFIG = $(SDL_CONFIG) $(THREAD) $(GETMATH)
+
 
 # $@ is a macro for name of rule
 # $^ is all the deps for the rule
@@ -51,6 +37,8 @@ myImage.o : myImage.c
 myNPC.o : myNPC.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 temp.o : temp.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+myInput.o : myInput.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 clear:
 	rm $(ALLOBJO) m02
