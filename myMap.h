@@ -10,8 +10,6 @@
 //also, considering a new struct to hold tile properties, such as wall, ice, etc
 //would be used in tile_t
 
-extern SDL_Renderer* gRan;
-
 typedef
 struct {
   char* itemPath;
@@ -42,8 +40,10 @@ void freeMap(tile_map_t* map);
 
 tile_map_t* debugMap();
 tile_t** debugTilesInit();
+void startDebugPopulate();
+void setDrawnMap( tile_map_t * map, npc_pos_t* currentPos);
 tile_t** readMap(char* mapPath);
-SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan);
+SDL_Texture* cinterTiles(tile_map_t* tiles);
 tile_t* getTileFromMapPos(tile_map_t* map, tile_pos_t* pos);
 tile_t* getTileFromMapCord(tile_map_t* map, int y, int x);
 
@@ -56,8 +56,6 @@ void drawNPCList(NPC_list_t* list);
 void drawNPC(NPC_t* npc);
 
 void singleInput(NPC_node_t* npc);
-
-int handleSingleInput(NPC_node_t* npcNode, SDL_Event e);
 
 int isAWall(tile_t* tile);
 

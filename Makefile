@@ -5,14 +5,14 @@ OBJO = m$(MYNUM).o
 CC = gcc
 
 #Linkied objects
-LO = myImage.o myMap.o myNPC.o temp.o myInput.o
+LO = myImage.o myMap.o myNPC.o temp.o myInput.o myList.o myMenu.o gameState.o
 
 ALLOBJO = $(OBJO) $(LO)
 
 COMPILER_FLAGS = -Wall -g
 
 #Special SDL config code that links libraries magically
-SDL_CONFIG  = `sdl2-config --cflags --libs` -lSDL2_image
+SDL_CONFIG  = `sdl2-config --cflags --libs` -lSDL2_image -lSDL2_ttf
 
 #things for threads
 THREAD = "-lpthread"
@@ -40,5 +40,11 @@ temp.o : temp.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 myInput.o : myInput.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+myList.o : myList.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+myMenu.o : myMenu.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+gameState.o : gameState.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<	
 clear:
 	rm $(ALLOBJO) m02

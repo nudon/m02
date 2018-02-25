@@ -6,11 +6,9 @@
 //also, sdl has it's own file io libraries
 
 #include "myMap.h"
-extern SDL_Renderer* gRan;
 extern npc_pos_t* cameraPos;
 extern SDL_Rect drawnMap, drawnScreen;
 extern int SCREEN_WIDTH, SCREEN_HEIGHT;
-
 
 tile_map_t* debugMap() {
   tile_map_t* debugMap = malloc(sizeof(tile_map_t));
@@ -20,6 +18,86 @@ tile_map_t* debugMap() {
   
   debugMap->allNPCS = createNPC_move_list();
   return debugMap;
+}
+
+tile_t** debugTilesInit() {
+  char* blackTile = "/home/nudon/prg/gam/media/black.png";
+  char* whiteTile = "/home/nudon/prg/gam/media/white.png";
+  tile_t** debugTiles = malloc(sizeof(tile_t*) * 16);
+  for (int i = 0; i < 16; i++) {
+    debugTiles[i] =  (tile_t*)malloc(sizeof(tile_t) * 16);
+    for (int j = 0; j < 16; j++) {
+      debugTiles[i][j] = *(createTile(blackTile, j,i));
+      if ((j + (i % 2)) % 2 == 0) {
+	debugTiles[i][j].tilePath = whiteTile;
+      }
+    }
+  }
+  return debugTiles;
+}
+
+
+void startDebugPopulate() {
+    NPC_t* mc = createNPC();
+    makeMC(mc);
+    setNPCPositionByCord(mc, 1 , 1);
+    addNPC(mc);
+    
+    NPC_t* tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 8, 8);
+    addNPC(tori);
+
+    tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 7, 7);
+    addNPC(tori);
+    
+    tori = createNPC();
+    makeNPC(tori);
+    setNPCPositionByCord(tori, 9, 9);
+    addNPC(tori);
+}
+
+void setDrawnMap( tile_map_t * map, npc_pos_t* currentPos) {
+  if (map->rows * TILED < SCREEN_HEIGHT) {
+    drawnMap.y = 0;
+    drawnMap.h = map->rows * TILED;
+    drawnScreen.y =  (SCREEN_HEIGHT - map->rows * TILED) / 2;
+  }
+  else {
+    drawnMap.y = currentPos->pixPosY - (SCREEN_HEIGHT / 2);
+    drawnMap.h = SCREEN_HEIGHT;
+    drawnScreen.y = 0;
+  }
+  drawnScreen.h = drawnMap.h;
+  
+  if (map->cols * TILED < SCREEN_WIDTH) {
+    drawnMap.x = 0;
+    drawnMap.w = map->cols * TILED;
+    drawnScreen.x =  (SCREEN_WIDTH - map->cols * TILED) / 2;
+  }
+  else {
+    drawnMap.x = currentPos->pixPosX - (SCREEN_WIDTH / 2);
+    drawnMap.w = SCREEN_WIDTH;
+    drawnScreen.x = 0;
+  }
+  drawnScreen.w = drawnMap.w;
+  
+  if (drawnMap.y < 0) {
+    drawnMap.y = 0;
+  }
+  if (drawnMap.x < 0) {
+    drawnMap.x = 0;
+  }
+  if (drawnMap.y > map->rows * TILED) {
+    drawnMap.y = map->rows * TILED;
+  }
+  if (drawnMap.x > map->cols * TILED) {
+    drawnMap.x = map->cols * TILED;
+  }
+  cameraPos->pixPosX = drawnMap.x + (drawnMap.w / 2);
+  cameraPos->pixPosY = drawnMap.y + (drawnMap.h / 2);
 }
 
 tile_t * createTile(char* textPath, int x, int y) {
@@ -50,23 +128,6 @@ void freeMap(tile_map_t* map) {
   }
 }
 
-//getting an issue here, think it's the funky way Im assigning to debugTiles[i][j]
-//try either the old way, or rework debugTiles to be a 
-tile_t** debugTilesInit() {
-  char* blackTile = "/home/nudon/prg/gam/media/black.png";
-  char* whiteTile = "/home/nudon/prg/gam/media/white.png";
-  tile_t** debugTiles = malloc(sizeof(tile_t*) * 16);
-  for (int i = 0; i < 16; i++) {
-    debugTiles[i] =  (tile_t*)malloc(sizeof(tile_t) * 16);
-    for (int j = 0; j < 16; j++) {
-      debugTiles[i][j] = *(createTile(blackTile, j,i));
-      if ((j + (i % 2)) % 2 == 0) {
-	debugTiles[i][j].tilePath = whiteTile;
-      }
-    }
-  }
-  return debugTiles;
-}
 
 tile_t** readMap(char* mapPath) {
   //first, parse file, find dimensions
@@ -109,25 +170,11 @@ tile_t** readMap(char* mapPath) {
   return tiles;
 }
 
-SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
+SDL_Texture* cinterTiles(tile_map_t* tiles) {
   SDL_Texture* megaTexture = NULL;
   SDL_Surface* megaSurface;
 
-  //I stole this from https://wiki.libsdl.org/SDL_CreateRGBSurface
-  Uint32 rmask, gmask, bmask, amask;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-  rmask = 0xff000000;
-  gmask = 0x00ff0000;
-  bmask = 0x0000ff00;
-  amask = 0x000000ff;
-#else
-  rmask = 0x000000ff;
-  gmask = 0x0000ff00;
-  bmask = 0x00ff0000;
-  amask = 0xff000000;
-#endif
-  megaSurface = SDL_CreateRGBSurface(0, tiles->cols * TILED, tiles->rows * TILED,
-				     32,rmask, gmask,  bmask, amask);
+  megaSurface = createSurfaceFromDim(tiles->cols * TILED, tiles->rows * TILED);
   //my crimes end here. 
   if (tiles->rows * tiles->cols >= 0) {
     SDL_Rect subTexture;
@@ -151,7 +198,7 @@ SDL_Texture* cinterTiles(tile_map_t* tiles, SDL_Renderer* gRan) {
       }
       subTexture.y += TILED;
     }
-    megaTexture = loadSurfaceToTexture(megaSurface, gRan);
+    megaTexture = loadSurfaceToTexture(megaSurface);
     SDL_FreeSurface(megaSurface);
   
   }
@@ -197,7 +244,7 @@ void myDrawRect(int x1, int y1, int x2, int y2) {
   rect.y = y1;
   rect.w = x2 - x1;
   rect.h = y2 - y1;
-  SDL_RenderFillRect(gRan, &rect);
+  SDL_RenderFillRect(getRenderer(), &rect);
 }
 
 
@@ -225,7 +272,8 @@ double mSq(double b) {
 void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
   if (layers > 0) {
     SDL_Color old;
-    if (SDL_GetRenderDrawColor(gRan, &old.r, &old.g, &old.b, &old.a) == 0) {
+    SDL_Renderer* rend = getRenderer();
+    if (SDL_GetRenderDrawColor(rend, &old.r, &old.g, &old.b, &old.a) == 0) {
       int r;
       int g;
       int b;
@@ -240,10 +288,10 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
 	g = g << (sizeof(int) / 2);
 	b = 255 * mSq(tan(i * M_PI/scrmble));
 	b = b << (sizeof(int) / 2);
-	SDL_SetRenderDrawColor( gRan, r, g, b, 0xFF );
+	SDL_SetRenderDrawColor( rend, r, g, b, 0xFF );
 	myDrawRect( x1 + dx * i, y1 + dy * i, x2 - dx * i, y2 - dy * i);
       }
-      SDL_SetRenderDrawColor(gRan, old.r, old.g, old.b, old.a);
+      SDL_SetRenderDrawColor(rend, old.r, old.g, old.b, old.a);
     }
     else {
       fprintf(stderr, "Unable to backup previous drawRender settings: %s  \n", SDL_GetError());
@@ -257,6 +305,7 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
 
 void drawNPC(NPC_t* npc) {
   SDL_Rect srcRect, destRect;
+  SDL_Renderer* rend = getRenderer();
   destRect.x = npc->pixelPos->pixPosX + drawnScreen.x;
   destRect.y = npc->pixelPos->pixPosY + drawnScreen.y;
   destRect.w = TILED;
@@ -274,13 +323,8 @@ void drawNPC(NPC_t* npc) {
       srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
       srcRect.w = npc->animState->holder->sprite_width;
       srcRect.h = npc->animState->holder->sprite_height;
-      //odd thing here, constraning sprite to a single tile
-      //would be kind of odd to implement things spanning multiple tiles
-      //if things are just tall, y dimension would be different
-      //if things are wide, would either have to change things, or do the classic
-      //clobber wide monsters into 4 sub monsters that move in unison. 
       
-      SDL_RenderCopy(gRan,
+      SDL_RenderCopy(rend,
 		     npc->animState->holder->sprite_sheet,
 		     &srcRect,
 		     &destRect);
@@ -293,10 +337,10 @@ void drawNPC(NPC_t* npc) {
       else {
 	
 
-	SDL_SetRenderDrawColor( gRan, 0x00, 0x00, 0x00, 0xFF );
+	SDL_SetRenderDrawColor( rend, 0x00, 0x00, 0x00, 0xFF );
 	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 2);
 
-	SDL_SetRenderDrawColor( gRan, 0xff, 0xff, 0xff, 0xFF );
+	SDL_SetRenderDrawColor( rend, 0xff, 0xff, 0xff, 0xFF );
 	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 3);
       }
     }

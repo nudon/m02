@@ -16,8 +16,6 @@ static void myClose();
 
 static int loadMedia();
 
-static void setDrawnMap();
-
 static int  startDebug();
 
 static void gameLoop();
@@ -33,7 +31,7 @@ void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 //Globals
 SDL_Window* gWin = NULL;
-SDL_Renderer* gRan = NULL;
+//SDL_Renderer* gRan = NULL;
 int quit = 0;
 npc_pos_t* cameraPos;
 SDL_Color backgroundColor;
@@ -61,23 +59,30 @@ const int SLEEP_TIME_MS = 25;
 //other things to do, get basic animation working. This means setting up sprite sheets
 //and also updating draw functions to iterate over the correct sprite cycle. might need more flags
 
-//beyond that, get my map section code worked out, or not.
-//going to try this actually. have idea of getting it to compile first, then setting sections
-//then changing color of tile based on sections, just to get a visual indication of stuff
+//putting map sections on the backlog of the backlog.
+//For now implementation goal is just have npc's perform a fixed amount of naive maze solving guesses per loop
 
 //also, look into storing/reading maps to/from files. Or if not maps, at least specific information, for stuff like saves
 
-//also maybe start playing around with what items should be. 
+//also maybe start playing around with what items should be.
+
+//had some ideas about how to implement depth for items whose sprites extend beyond a single tile
+//essentially just draw items from top row to bottom. Also, modify npc drawing
+//go through npcList, shove each npc into a list respective to which row they are on
+//draw these appropriately with the items. Should rudimently simulate depth
+
+//rework things to access globals to functions, or take them as parameters. 
 
 int main(int argc, char** args) {
   quit = 0;
   if (init() == 0) {
     if (loadMedia() == 0) {
-      SDL_Texture* logo = loadTexture("/home/nudon/prg/gam/sdl/pocus.png", gRan);
+      SDL_Texture* logo = loadTexture("/home/nudon/prg/gam/sdl/pocus.png");
       if (logo != NULL) {
-	SDL_RenderClear(gRan);
-	SDL_RenderCopy(gRan, logo, NULL, NULL);
-	SDL_RenderPresent(gRan);
+	SDL_Renderer* rend = getRenderer();
+	SDL_RenderClear(rend);
+	SDL_RenderCopy(rend, logo, NULL, NULL);
+	SDL_RenderPresent(rend);
 	SDL_Delay(100);
       }
       if (startDebug() == 0) {
@@ -98,41 +103,12 @@ int main(int argc, char** args) {
   return 0;
 }
 
-static void startDebugPopulate() {
-    NPC_t* mc = createNPC();
-    makeMC(mc);
-    setNPCPositionByCord(mc, 1 , 1);
-    addNPC(mc);
-    
-    NPC_t* tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 8, 8);
-    addNPC(tori);
-
-    /*
-    tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 8, 8);
-    addNPC(tori);
-    */
-
-    tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 7, 7);
-    addNPC(tori);
-    
-    tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 9, 9);
-    addNPC(tori);
-}
-
 static int startDebug() {
   int fail = 0;
   activeMap = debugMap();
   //makeSections(activeMap);
   if (activeMap != NULL) {
-    currMapBG = cinterTiles(activeMap, gRan);
+    currMapBG = cinterTiles(activeMap);
     if (currMapBG != NULL) {
       startDebugPopulate();
     }
@@ -149,68 +125,32 @@ static int startDebug() {
 }
 
 
-void setDrawnMap() {
-  tile_map_t * map = activeMap;
-  npc_pos_t* currentPos = cameraPos;
-  if (map->rows * TILED < SCREEN_HEIGHT) {
-    drawnMap.y = 0;
-    drawnMap.h = map->rows * TILED;
-    drawnScreen.y =  (SCREEN_HEIGHT - map->rows * TILED) / 2;
-  }
-  else {
-    drawnMap.y = currentPos->pixPosY - (SCREEN_HEIGHT / 2);
-    drawnMap.h = SCREEN_HEIGHT;
-    drawnScreen.y = 0;
-  }
-  drawnScreen.h = drawnMap.h;
-  
-  if (map->cols * TILED < SCREEN_WIDTH) {
-    drawnMap.x = 0;
-    drawnMap.w = map->cols * TILED;
-    drawnScreen.x =  (SCREEN_WIDTH - map->cols * TILED) / 2;
-  }
-  else {
-    drawnMap.x = currentPos->pixPosX - (SCREEN_WIDTH / 2);
-    drawnMap.w = SCREEN_WIDTH;
-    drawnScreen.x = 0;
-  }
-  drawnScreen.w = drawnMap.w;
-  
-  if (drawnMap.y < 0) {
-    drawnMap.y = 0;
-  }
-  if (drawnMap.x < 0) {
-    drawnMap.x = 0;
-  }
-  if (drawnMap.y > map->rows * TILED) {
-    drawnMap.y = map->rows * TILED;
-  }
-  if (drawnMap.x > map->cols * TILED) {
-    drawnMap.x = map->cols * TILED;
-  }
-  cameraPos->pixPosX = drawnMap.x + (drawnMap.w / 2);
-  cameraPos->pixPosY = drawnMap.y + (drawnMap.h / 2);
-}
-
-
 void gameLoop() {
-  setDrawnMap();
-  while(!quit) {
+  SDL_Renderer* gRan = getRenderer();
+  setDrawnMap(activeMap, cameraPos);
+  while(getGameState() != GAMEQUIT) {
     setBGColor(0,0,0,0xff);
     SDL_RenderClear(gRan);
-
+    //Standard I've been thinking about
+    //have each gameMstate assosiate with some function,
+    //wrap whatever's in the code block within a function
+    //want to keep the number of seperate drawLoops going on down to one
+    //so for menu's and all that, want to develop actions to not be a loop
 
     //gameRun functions
-    if(state == GAMERUN) {
+    if(getGameState() == GAMERUN) {
       pickDestLoop(activeMap->allNPCS);
       moveDestLoop(activeMap->allNPCS);
-      setDrawnMap();
+      setDrawnMap(activeMap, cameraPos);
     }
     SDL_RenderCopy(gRan, currMapBG, &drawnMap, &drawnScreen);
     drawAllNPCS(activeMap->allNPCS);
     //gamePause functions
-    if(state == GAMEPAUSE) {
-      pauseMenu();
+    if(getGameState() == GAMEPAUSE) {
+      if (getActiveMenu() == NULL) {
+	setActiveMenu(getMainMenu());
+      }
+      getActiveMenu()->action();
     }
     
     SDL_Delay(updateWait);
@@ -219,6 +159,7 @@ void gameLoop() {
 } 
 
 int init() {
+  SDL_Renderer* rend = NULL;
   drawnMap.x = 0;
   drawnMap.y = 0;
   drawnMap.w = SCREEN_WIDTH;
@@ -235,12 +176,22 @@ int init() {
 			    SCREEN_HEIGHT,
 			    SDL_WINDOW_SHOWN);
     if (gWin != NULL) {
-      gRan = SDL_CreateRenderer(gWin, -1, SDL_RENDERER_ACCELERATED);
-      if (gRan != NULL) {
-	SDL_SetRenderDrawColor(gRan, 0xff, 0xff, 0xff, 0xff);
+      rend = SDL_CreateRenderer(gWin, -1, SDL_RENDERER_ACCELERATED);
+      if (rend != NULL) {
+	setRenderer(rend);
+	SDL_SetRenderDrawColor(rend, 0xff, 0xff, 0xff, 0xff);
 	int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
 	if ((IMG_Init(imgFlags) & imgFlags)) {
-	  state = GAMERUN;
+	  if (TTF_Init() != -1) {
+	    setActiveMenu(NULL);
+	    setMainMenu(createMainMenu());
+	    setGameState(GAMERUN);
+	  }
+	  else {
+	    fail = 5;
+	    fprintf(stderr, "Error in loading TTF libraries: %s\n",
+		    TTF_GetError());
+	  }
 	}
 	else {
 	  fail = 4;
@@ -278,10 +229,11 @@ void myClose() {
   freeMap(activeMap);
   SDL_DestroyTexture(currMapBG);
   currMapBG = NULL;
-  SDL_DestroyRenderer(gRan);
-  gRan = NULL;
+  freeRenderer();
+  freeMenu(getMainMenu());
   SDL_DestroyWindow(gWin);
   gWin = NULL;
+  TTF_Quit();
   IMG_Quit();
   free(currMapBG);
   SDL_Quit();
@@ -289,5 +241,7 @@ void myClose() {
 
 
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-  SDL_SetRenderDrawColor(gRan, r, g, b, a);
+  SDL_SetRenderDrawColor(getRenderer(), r, g, b, a);
 }
+
+

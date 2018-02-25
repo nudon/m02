@@ -11,7 +11,6 @@ static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node);
 
-extern SDL_Renderer* gRan;
 extern tile_map_t* activeMap;
 
 //extern GameState state;
@@ -213,7 +212,7 @@ void loadSpriteMC(sprite_holder_t* holder) {
   holder->sprite_height = 32;
   holder->rows = 1;
   holder->cols = 1;
-  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png", gRan);
+  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png");
 }
 
 NPC_node_t* createNPC_node(NPC_t* npc) {

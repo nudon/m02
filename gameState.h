@@ -3,9 +3,12 @@
 
 enum GameState {
   GAMERUN,
-  GAMEPAUSE
+  GAMEPAUSE,
+  GAMEQUIT
 };
 
- enum GameState state;
+enum GameState getGameState();
+
+void setGameState(enum GameState);
 
 #endif

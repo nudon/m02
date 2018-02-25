@@ -1,21 +1,14 @@
 #include "myInput.h"
-//so, got pause working. Only issue now is that I reintroduces diagonal movement
-//When I was just acting upon first input, the keyup releases of esc got tossed
-//so I had to push it twice to unpause
-//better solution would be to have 2 different functions for handling keydown/keyup inputs
-//only have one keydown be processed per call to singleInput, but have multiple keyUps be processed
-//key states for SDL_keysym keycodes
 
-
+//array over enumerations of keys found in header
+//stores whether the last associated with the key a keydown or keyup
 static uint32_t keyStates[KEY_LAST];
-
-extern int quit;
 
 void singleInput(NPC_node_t* npcNode) {
   SDL_Event e;
-   while(SDL_PollEvent(&e) != 0 ) {
+  while(SDL_PollEvent(&e) != 0 ) {
     if (e.type == SDL_QUIT) {
-      quit = 1;
+      setGameState(GAMEQUIT);
     }
     else if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)) {
       handleSingleInput(npcNode, &e);
@@ -55,44 +48,24 @@ int handleSingleInput(NPC_node_t* npcNode, SDL_Event* e) {
       val = 1;
     }
     break;
+  case SDLK_RETURN:
+    //appears empty, just here to detect if/when return key goes up
+    //otherwise, have to press it twice sometimes for menuInput to work
+    //seems like a safe thing to do, is that for every key i'm keeping track of
+    //no matter what input state I'm currently in, have a case to detect key
+    //and at least have a call to checkAndUpdateKey in the case
+    activeKey = KEY_RETURN;
+    checkAndUpdateKey(activeKey, e);
   case SDLK_ESCAPE:
     activeKey = KEY_ESCAPE;
     if (checkAndUpdateKey(activeKey, e)) {
       if (e->type == SDL_KEYDOWN) {
-	state = GAMEPAUSE;
+	setGameState(GAMEPAUSE);
 	val = 1;
       }
     }
   default:
     break;      
-  }
-  return val;
-}
-
-void pauseMenu() {
-  SDL_Event e;
-  while(SDL_PollEvent(&e) != 0) {
-    if (e.type == SDL_QUIT) {
-      quit = 1;
-    }
-    handlePauseInput(&e);
-  }
-}
-
-int handlePauseInput(SDL_Event* e) {
-  int val = -1;
-  keyArg activeKey;
-  switch(e->key.keysym.sym){
-  case SDLK_ESCAPE:
-    activeKey = KEY_ESCAPE;
-    if (checkAndUpdateKey(activeKey, e)) {
-      if (e->type == SDL_KEYDOWN) {
-	state = GAMERUN;
-	val = 1;
-      }
-    }
-  default:
-    break;
   }
   return val;
 }
@@ -129,44 +102,44 @@ int keyUpCheck(keyArg key, SDL_Event* e) {
   return val;
 }
 
-
-//also, think I want to have two seperate functions for a box
-//one for handling input, another being a generic function
-//trade off to generiic function is that It'd have a generic arguement
-//so either nothing, or a void*, and I wrap whatever I want to pass into a struct
+void menuInput() {
+  SDL_Event e;
+  while(SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      setGameState(GAMEQUIT);
+    }
+    else if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)) {
+      basicMenuInputHandler(&e);
+    }
+  }
+}
 
 //basic menu input handler
 //either have a global menu for active menu
 //or pass in an arguement
 //basically, up/down changes activeItem
 //esc goes to parent menu
-//ret either enters menu, or executes a fuction
-//basically intend to design them like a union, so only leaf menus have non null actions
-void basicAction(SDL_Event* e) {
+void basicMenuInputHandler(SDL_Event* e) {
+  menu* activeMenu = getActiveMenu();
   keyArg key;
-  menu* activeMenu;
   switch(e->key.keysym.sym) {
   case SDLK_DOWN:
     key = KEY_DOWN;
     if ( keyDownCheck(key, e)) {
-      if (activeMenu->activeItem->next == NULL) {
-	activeMenu->activeItem = activeMenu->itemList->start;
+      activeMenu->activeIndex += 1;
+      if (activeMenu->activeIndex == activeMenu->arrayBound) {
+	activeMenu->activeIndex = 0;
       }
     }
-    else {
-      activeMenu->activeItem = activeMenu->activeItem->next;
-      }
     break;
     
   case SDLK_UP:
     key = KEY_UP;
     if (keyDownCheck(key, e)) {
-      if (activeMenu->activeItem->prev == NULL) {
-	activeMenu->activeItem = activeMenu->itemList->end;
+      activeMenu->activeIndex -= 1;
+      if (activeMenu->activeIndex == -1) {
+	activeMenu->activeIndex = activeMenu->arrayBound - 1;
       }
-    }
-    else {
-      activeMenu->activeItem = activeMenu->activeItem->prev;
     }
     break;
 
@@ -174,28 +147,20 @@ void basicAction(SDL_Event* e) {
     key = KEY_RETURN;
     //do things associated with active menu, probably
     if (keyDownCheck(key, e)) {
-      if (activeMenu->activeItem != NULL) {
-	activeMenu = activeMenu->activeItem->stored;
-	/*
-	if (activeMenu->action != NULL) {
-	  //likely to blo
-	  activeMenu->action();
-	  activeMenu = activeMenu->parent;
-	}
-	*/	
-      }
+      setActiveMenu(&(activeMenu->menuEntries[activeMenu->activeIndex]));
     }
     break;
-
+    
   case SDLK_ESCAPE:
-    key = KEY_ESCAPE;;
+    key = KEY_ESCAPE;
     if (keyDownCheck(key, e)) {
       if (activeMenu->parent != NULL) {
-	activeMenu = activeMenu->parent;
-	  }
-    }
-    else {
-      //probably change state to gameRun
+	setActiveMenu(activeMenu->parent);
+      }
+      else {
+	setActiveMenu(NULL);
+	setGameState(GAMERUN);
+      }
     }
     break;
 
