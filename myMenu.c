@@ -1,19 +1,4 @@
 #include "myMenu.h"
-//setting up some menu primitives
-//first would just be creating boxes
-//then creating boxes with things in them, ideally text
-//then having some way of keeping track of which box I'm on,
-//and what to do if I'm on a box and a button is pressed
-//for handling input and for associating actions, just having function pointers
-
-//think I might have a function for drawing "small menus" for displaying lists
-//basically, draw the main menu, then for each item in list
-//just draw a sequence of small boxes with text
-//issue of too many boxes to display in window size
-//basic Idea is just have a seperate menu in that case, and have a next/prev button go between the two
-//could either do that by hand, or somehow automatically
-//could do that by calling a function when I've added all the items I intend to a given menu
-
 //so, slight redesign
 //idea is, create the menus, and their submenus, and so on.
 //then, maybe after, or maybe only on pulling up a menu, set the menuImage
@@ -79,6 +64,9 @@ static menu* createMenuOpt(int w, int h, char* msg) {
   new->bgColor->b = 18;
   new->menuImage = NULL;
 
+  //ideally I'd have this be proportional to either screen dim
+  //or at least the menu dim. 
+  new->entryHeight = 48;
   new->menuEntries = NULL;
   new->activeIndex = 0;
   new->arrayBound = 0;
@@ -147,7 +135,6 @@ menu* createMainMenu() {
   mainMenu->arrayBound = 3;
   mainMenu->menuEntries = malloc(sizeof(menu) * mainMenu->arrayBound);
   mainMenu->menuEntries[0] = *createResumeMenu(mainMenu);
-  //mainMenu->menuEntries[1] = *createResumeMenu(mainMenu);
   mainMenu->menuEntries[1] = *createMapEditMenu(mainMenu);
   mainMenu->menuEntries[2] = *createQuitMenu(mainMenu);
   fillMenu(mainMenu);
@@ -203,7 +190,7 @@ void fillMenu(menu* theMenu) {
   int subX, subY, height;
   subX = x;
   subY = y;
-  height = 48;
+  height = theMenu->entryHeight;
   SDL_Rect dstRect;
   dstRect.x = subX;
   dstRect.y = subY;
@@ -213,7 +200,8 @@ void fillMenu(menu* theMenu) {
   menu* menuEntry;
   for (int i = 0 ; i < theMenu->arrayBound ; i++) {
     menuEntry = &(theMenu->menuEntries[i]);
-    dstRect.w = strlen(menuEntry->text) * 20;
+    //this line apparenly doesn't do anything
+    dstRect.w = strlen(menuEntry->text) * 0;
     textSurf = TTF_RenderText_Solid(menuEntry->font, menuEntry->text, *(menuEntry->textColor));
     SDL_BlitSurface(textSurf, NULL, temp, &dstRect);
     SDL_FreeSurface(textSurf);
@@ -228,12 +216,30 @@ void drawCurrentMenu() {
   SDL_Renderer* rend = getRenderer();
   menu* theMenu = currentMenu;
   SDL_Rect dstRect;
+
+
+  
   dstRect.w = theMenu->width;
   dstRect.h = theMenu->height;
   dstRect.x = (SCREEN_WIDTH  - theMenu->width) / 2;
   dstRect.y = (SCREEN_HEIGHT - theMenu->height) / 2;
   
   SDL_RenderCopy(rend, theMenu->menuImage, NULL, &dstRect);
+
+  //so, how to indicate active entry
+  //have some SDL_texture, eventually
+  //text aligning has worked nicely, but I'm not exactly sure about how it's being nice
+  //for example, originally planned text to just start at top of menu, but it doesn't.
+  //it's kind of centered in the middle. Also, seems like changing the font type changes allignment
+  //so Until I pin that down, just get a rough approximation for where to draw the circle
+  
+  int x = (SCREEN_WIDTH) * 1 / 4;
+  int y = (SCREEN_HEIGHT - theMenu->height) / 2;
+  y += (theMenu->activeIndex + 1) * theMenu->entryHeight + 25 ;
+  
+  SDL_SetRenderDrawColor( rend, 0xff, 0xff, 0xff, 0xFF );
+  myDrawCirc(x , y , theMenu->entryHeight / 3);
+  
 }
 
 

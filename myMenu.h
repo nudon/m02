@@ -24,6 +24,7 @@ struct menu_struct {
   SDL_Texture* menuImage;
 
   //list of menu entries for the menu
+  int entryHeight;
   struct menu_struct * menuEntries;
   int activeIndex;
   int arrayBound;
