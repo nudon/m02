@@ -4,6 +4,13 @@
 #include "myInput.h"
 #include <assert.h>
 
+//in terms of memory management for sprite holders
+//bit of a pickle here, since the npc_sprite_holder is shared among npcs
+//so on calling free npc, freeing the sprite holder would break things if holder is being shared
+//might just need to maintain a list of unique spritesheets, then free at end
+//actually like that idea, have an array of those spritesheets. the * kind, not the **
+//then I just need one free
+
 //static prototype
 static void appendToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
@@ -16,8 +23,6 @@ extern tile_map_t* activeMap;
 //extern GameState state;
 
 void pickDestLoop(NPC_move_list* npcList) {
-  //printf("here is idle list:");
-  //printNPCList(npcList->idleList);
   NPC_node_t* current = npcList->idleList->start;
   NPC_node_t* temp;
   while(current != NULL) {
@@ -63,8 +68,6 @@ void setDestByCord(NPC_node_t* node, int x, int y) {
   node->dest->posY = y;
 }
 void moveDestLoop(NPC_move_list* npcList) {
-  //printf("here is move list:");
-  //printNPCList(npcList->moveList);
   NPC_node_t* current = npcList->moveList->start;
   NPC_node_t* temp;
   while(current != NULL) {
@@ -75,7 +78,6 @@ void moveDestLoop(NPC_move_list* npcList) {
 }
 
 void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
-  //what am I doing here
   //have dx and dy, deltas of current pos to dest pos
   //have sx and sy, which indicate sign of dx or dy
   int lSpeed = npcNode->storedNPC->speed;
@@ -181,8 +183,6 @@ void makeNPC(NPC_t* slate) {
 }
 
 void freeNPC(NPC_t* npc) {
-  //bit of a pickle here, since the npc_sprite_holder is shared among npcs
-  //might just need to maintain a list of unique spritesheets, then free at end
   free(npc->position);
   free(npc->pixelPos);
   free(npc->animState);
@@ -261,12 +261,10 @@ void addNPC(NPC_t* npc) {
   prependToNPC_list(activeMap->allNPCS->idleList, createNPC_node(npc));
 }
 void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode) {
-  //  printf("moving to moveList: %d\n", npcNode->storedNPC->npcID);
   removeFromNPC_list(totNPC->idleList, npcNode);
   prependToNPC_list(totNPC->moveList, npcNode);
 }
 void changeToIdleList(NPC_move_list* totNPC, NPC_node_t* npcNode) {
-  //  printf("moving to idleList: %d\n", npcNode->storedNPC->npcID);
   removeFromNPC_list(totNPC->moveList, npcNode);
   prependToNPC_list(totNPC->idleList, npcNode);
 }
@@ -282,9 +280,6 @@ void printNPCList(NPC_list_t* list) {
 }
 
 static void appendToNPC_list(NPC_list_t* list, NPC_node_t* new) {
-  //  printf("adding node %d\n", new->storedNPC->npcID);
-  //  printf("list at start: ");
-  //  printNPCList(list);
   if (list->start == NULL) {
     list->start = new;
   }
@@ -298,14 +293,9 @@ static void appendToNPC_list(NPC_list_t* list, NPC_node_t* new) {
   }
   list->end = new;
   new->next = NULL;
-  //  printf("list at end: ");
-  //  printNPCList(list);
 }
 
 static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new) {
-  //  printf("adding node %d\n", new->storedNPC->npcID);
-  //  printf("list at start: ");
-  //  printNPCList(list);
   if (list->end == NULL) {
     list->end = new;
   }
@@ -319,18 +309,10 @@ static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new) {
   }
   list->start = new;
   new->prev = NULL;
-  //  printf("list at end: ");
-  //  printNPCList(list);
 
 }
 
-//pretty sure I can rewrite this to take out list traversal
-//just need to have it take npcnode as an arguement
 static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node) {
-  //   printf("removing node %d\n", ID->npcID);
-  //printf("list at start: ");
-  //printNPCList(list);
-  //from begining search
   if (node != NULL) {
     if (node->prev == NULL && node->next == NULL) {
       list->start = NULL;
@@ -355,8 +337,6 @@ static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node) {
   }
 }
 
-
-//utilities
 int equalTilePos(tile_pos_t* t1, tile_pos_t* t2) {
   if (t1->posX == t2->posX && t1->posY == t2->posY) {
     return 1;

@@ -71,13 +71,17 @@ const int SLEEP_TIME_MS = 25;
 //go through npcList, shove each npc into a list respective to which row they are on
 //draw these appropriately with the items. Should rudimently simulate depth
 
-//rework things to access globals to functions, or take them as parameters. 
+//rework things to access globals to functions, or take them as parameters.
+
+//get a better menu system going. Have an okay basic nesting setup. But ideally I would have it be fancier
+//like allow submenus, basically have some way of dividing a menu into rectangles, each of those contain menues
 
 int main(int argc, char** args) {
   quit = 0;
   if (init() == 0) {
     if (loadMedia() == 0) {
       SDL_Texture* logo = loadTexture("/home/nudon/prg/gam/sdl/pocus.png");
+      logo = NULL;
       if (logo != NULL) {
 	SDL_Renderer* rend = getRenderer();
 	SDL_RenderClear(rend);

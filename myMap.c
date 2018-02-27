@@ -1,10 +1,3 @@
-//also, ideally want to write a in engine map editor
-//basically just highlight a tile, and specify field values
-//might be a good use of learning how to do interfaces
-//then, could write a function to output map to text or other format
-
-//also, sdl has it's own file io libraries
-
 #include "myMap.h"
 extern npc_pos_t* cameraPos;
 extern SDL_Rect drawnMap, drawnScreen;
@@ -175,7 +168,6 @@ SDL_Texture* cinterTiles(tile_map_t* tiles) {
   SDL_Surface* megaSurface;
 
   megaSurface = createSurfaceFromDim(tiles->cols * TILED, tiles->rows * TILED);
-  //my crimes end here. 
   if (tiles->rows * tiles->cols >= 0) {
     SDL_Rect subTexture;
     SDL_Surface* loadedSurface;
@@ -288,3 +280,15 @@ int isAWall(tile_t* tile) {
     return 0;
   }
 }
+
+
+//so, map editing. This is going to be fairly complicated, mostly because they're going to probably have their own menues
+//basic idea, have some active tile. maybe make it a red rectangle. have it move around, probably reuse the single input code
+//either for userinput or setting the drawn Map.
+//could actually save off old movelist and idlelist, and just create a new one for just the camera thing
+//could then set speed to some specific value, to allow for 1-frame tile traversal. Then just restore lists at end
+//anyways, base case, have that move around using arrow keys. That part is easy.
+//on pushing some special key, maybe enter or e, pull up some menu
+//basically, will show the current values of the highlighted tile. That might require some reworking of menus, but simple
+//the annoying part will be getting input through the game window. Will need to learn how to do that first
+//then have to deal with sanitizing it. after that, maybe have a call to cinterTiles, to update map? at least when tile path changes

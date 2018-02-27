@@ -115,10 +115,9 @@ void menuInput() {
 }
 
 //basic menu input handler
-//either have a global menu for active menu
-//or pass in an arguement
 //basically, up/down changes activeItem
 //esc goes to parent menu
+//enter/return to call an associated function
 void basicMenuInputHandler(SDL_Event* e) {
   menu* activeMenu = getActiveMenu();
   keyArg key;
@@ -145,7 +144,6 @@ void basicMenuInputHandler(SDL_Event* e) {
 
   case SDLK_RETURN:
     key = KEY_RETURN;
-    //do things associated with active menu, probably
     if (keyDownCheck(key, e)) {
       setActiveMenu(&(activeMenu->menuEntries[activeMenu->activeIndex]));
     }

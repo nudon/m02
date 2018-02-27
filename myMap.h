@@ -5,10 +5,8 @@
 #include "myImage.h"
 #include "temp.h"
 #include "myNPC.h"
-//considering a nother struct, which would just be a tile** and row/col info
-//would be used in tile_map_t
-//also, considering a new struct to hold tile properties, such as wall, ice, etc
-//would be used in tile_t
+
+
 
 typedef
 struct {
@@ -16,6 +14,8 @@ struct {
 } item_t;
 
 
+//thinking I'll do a similar thing to how I handled npcs
+//declare some uint8, have it store flags for properties of wall
 typedef
 struct {
   char* tilePath;

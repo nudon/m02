@@ -7,6 +7,8 @@
 //also, working with arrays now, since I'm not going to be adding/removing menu lists on the go
 //so structure of menus will be super hardcoded.
 
+//have a spartan menu system now. Would like to eventually change it to allow submenues to sometimes  be displayed in full
+
 static menu* createResumeMenu(menu* parent);
 
 static menu* createMapEditMenu(menu* parent);
@@ -187,15 +189,18 @@ void fillMenu(menu* theMenu) {
 				      theMenu->bgColor->g,
 				      theMenu->bgColor->b));
 
-  int subX, subY, height;
-  subX = x;
-  subY = y;
+  int height;
   height = theMenu->entryHeight;
   SDL_Rect dstRect;
-  dstRect.x = subX;
-  dstRect.y = subY;
+  dstRect.x = 0;
+  dstRect.y = 0;
   dstRect.h = height;
-  
+  //so, oriinally having issues with were I'm expectin things to be displayed
+  //isue was on the call to the blitSurface. Was passing in the dstRect relative to window's origin
+  //but it's a blit to a surface, so coordinates should be relative to that.
+  //could either store things in a list, starting at top right
+  //or try and recenter things
+  //going for list for now. 
   SDL_Surface* textSurf;
   menu* menuEntry;
   for (int i = 0 ; i < theMenu->arrayBound ; i++) {
@@ -232,15 +237,12 @@ void drawCurrentMenu() {
   //for example, originally planned text to just start at top of menu, but it doesn't.
   //it's kind of centered in the middle. Also, seems like changing the font type changes allignment
   //so Until I pin that down, just get a rough approximation for where to draw the circle
-  
-  int x = (SCREEN_WIDTH) * 1 / 4;
-  int y = (SCREEN_HEIGHT - theMenu->height) / 2;
-  y += (theMenu->activeIndex + 1) * theMenu->entryHeight + 25 ;
-  
-  SDL_SetRenderDrawColor( rend, 0xff, 0xff, 0xff, 0xFF );
-  myDrawCirc(x , y , theMenu->entryHeight / 3);
-  
+
+  //pinned down issue, was an issue with multiple coordinate systems
+  //now, 
+
+  dstRect.y += theMenu->activeIndex * theMenu->entryHeight;
+  dstRect.w = strlen(theMenu->menuEntries[theMenu->activeIndex].text) * 20;
+  dstRect.h = theMenu->entryHeight;
+  SDL_RenderDrawRect(getRenderer(), &dstRect);  
 }
-
-
-
