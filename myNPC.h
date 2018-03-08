@@ -1,10 +1,9 @@
 #ifndef FILE_MYNPC_SEEN
 #define FILE_MYNPC_SEEN
-#include <stdint.h>
-#include <SDL2/SDL.h>
+
 #include <SDL2/SDL_image.h>
 #include "temp.h"
-#include "myImage.h"
+
 
 //structs
 typedef
@@ -67,9 +66,19 @@ struct {
 } NPC_move_list;
 
 //NPC stuff
+
+NPC_node_t* getControlledCharacter();
+
+void setControlledCharacter(NPC_node_t* node);
+int isControlled(NPC_t* npc);
+
+int isDebuging(NPC_t* npc);
+
 NPC_t* createNPC();
 
 void makeMC(NPC_t* slate);
+
+void makeDebug(NPC_t* slate);
 
 void makeNPC(NPC_t* slate);
 
@@ -89,22 +98,19 @@ void alignNPCToPos(NPC_t* npc, tile_pos_t* pos);
 
 //NPC_node stuff
 NPC_node_t* createNPC_node(NPC_t* npc);
-
 void freeNPC_node(NPC_node_t* npcNode);
 
 //NPC_list stuff
 NPC_move_list* createNPC_move_list();
-
 NPC_list_t* createNPC_list();
-
+void drawAllNPCS(NPC_move_list* list);
+void drawNPCList(NPC_list_t* list);
+void drawNPC(NPC_t* npc);
 void freeNPC_list(NPC_list_t* npcList);
-
 void addNPC(NPC_t* npc); //creates node and adds to idle list
-
+void addNPCToList(NPC_t* npc, NPC_list_t* list);
 void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode);
-
 void changeToIdleList(NPC_move_list* totNPC, NPC_node_t* npcNode);
-
 void printNPCList(NPC_list_t* list);
 
 //utilities and whatnot
@@ -128,7 +134,5 @@ int validPos(tile_pos_t* tile);
 void positionShift(NPC_node_t* npcNode, int* shiftPos, int shiftAmount);
 
 void updateNPCPos(NPC_t* npc);
-
-#include "myMap.h"
 
 #endif

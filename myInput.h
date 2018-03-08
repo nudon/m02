@@ -2,10 +2,10 @@
 #define FILE_MYINPUT_SEEN
 
 #include "myNPC.h"
-#include "gameState.h"
-#include "myMenu.h"
 
 enum keys {
+  KEY_t,
+  KEY_m,
   KEY_UP,
   KEY_DOWN,
   KEY_LEFT,
@@ -17,17 +17,23 @@ enum keys {
 
 typedef enum keys keyArg;
 
-void singleInput(NPC_node_t* npcNode);
+char* getTempString();
 
-int handleSingleInput(NPC_node_t* npcNode, SDL_Event* e);
+void setTempString(char* new);
 
-void pauseMenu();
-
-int handlePauseInput(SDL_Event* e);
+void characterInput(NPC_node_t* node);
 
 void menuInput();
 
-void basicMenuInputHandler(SDL_Event* e);
+int handleSingleInput(NPC_node_t* npcNode, SDL_Event* e);
+
+int handleMapEditInput(NPC_node_t* npcNode, SDL_Event* e);
+
+int basicMenuInputHandler(SDL_Event* e);
+
+int handleTextEntry(SDL_Event* e);
+  
+void updateKeys(SDL_Event* e);
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e);
 

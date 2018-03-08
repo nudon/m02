@@ -1,8 +1,7 @@
 #ifndef FILE_MYMAP_SEEN
 #define FILE_MYMAP_SEEN
-#include <SDL2/SDL.h>
+
 #include <SDL2/SDL_image.h>
-#include "myImage.h"
 #include "temp.h"
 #include "myNPC.h"
 
@@ -32,7 +31,13 @@ struct {
   NPC_move_list* allNPCS;
 } tile_map_t;
 
-tile_t* createTile(char* path, int x, int y);
+void setActiveMap(tile_map_t* newMap);
+tile_map_t* getActiveMap();
+SDL_Rect* getDrawMap();
+SDL_Rect* getDrawScreen();
+npc_pos_t* getCameraPos();
+void setCameraPos(npc_pos_t* new);
+tile_t* createTile(int x, int y);
 
 void freeTile(tile_t* tile);
 
@@ -46,17 +51,6 @@ tile_t** readMap(char* mapPath);
 SDL_Texture* cinterTiles(tile_map_t* tiles);
 tile_t* getTileFromMapPos(tile_map_t* map, tile_pos_t* pos);
 tile_t* getTileFromMapCord(tile_map_t* map, int y, int x);
-
-void drawAllNPCS();
-
-void drawAllNPCS(NPC_move_list* list);
-
-void drawNPCList(NPC_list_t* list);
-
-void drawNPC(NPC_t* npc);
-
-void singleInput(NPC_node_t* npc);
-
 int isAWall(tile_t* tile);
 
 #endif 

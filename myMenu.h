@@ -1,20 +1,9 @@
 #ifndef FILE_MYMENU_SEEN
 #define FILE_MYMENU_SEEN
-#include <stdlib.h>
-#include <SDL2/SDL.h>
+
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-#include "myImage.h"
-#include "myInput.h"
-#include "myList.h"
-//sort at an impass. how to handle keeping drack of active menu, and handling all the associated actions
-//think idea is I'll have some global, and change it in basicMenuInputHandler.
-//then, for most menus, have the action associated with it just drawing the current menu
-//also, action might include calling the input 
-//for some, it will be something like editing the map
-//still want actions to not be their own mini-game loops
-//so all the framerate things can be handled in one place
-
+#include "gameState.h"
 
 struct menu_struct {
   //specifice of overall box. menuImage is the box with bg color with drawn in menu entries
@@ -37,7 +26,8 @@ struct menu_struct {
   SDL_Color* textColor;
   TTF_Font* font;
 
-  void (*inputHandler) (SDL_Event* e);
+  gameState returnState;
+  //void (*inputHandler) (SDL_Event* e);
   //think I want this void
   void (*action) ();
 };
@@ -48,11 +38,17 @@ menu* getActiveMenu();
 
 menu* getMainMenu();
 
+menu* getMapEditMenu();
+
 void setActiveMenu(menu* newMenu);
 
 void setMainMenu(menu* newMenu);
 
-menu* createMainMenu(); 
+void setMapEditMenu(menu* newMenu);
+
+menu* createMainMenu();
+
+menu* createMapEditMainMenu();
 
 void freeMenu(menu* aMenu);
 
@@ -60,6 +56,8 @@ void fillMenu(menu* theMenu);
 
 void drawCurrentMenu();
 
+void drawTextEntry();
 
+void drawText(TTF_Font* font, char* text, SDL_Color* textColor, SDL_Rect* dstRect);
 
 #endif

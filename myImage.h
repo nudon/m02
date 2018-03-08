@@ -1,8 +1,9 @@
 #ifndef FILE_MYIMAGE_SEEN
 #define FILE_MYIMAGE_SEEN
-#include <SDL2/SDL.h>
+
 #include <SDL2/SDL_image.h>
-#include <math.h>
+#include <SDL2/SDL_ttf.h>
+
 
 SDL_Surface* createSurfaceFromDim(int w, int h);
 
@@ -14,6 +15,9 @@ SDL_Texture* loadSurfaceToTexture(SDL_Surface* loadSurf);
 
 SDL_Texture* loadTexture(char* path);
 
+void drawText(TTF_Font* font, char* text, SDL_Color* textColor, SDL_Rect* dstRect);
+
+SDL_Texture* drawTextToTexture(TTF_Font* font, char* text, SDL_Color* textColor);
 
 SDL_Renderer* getRenderer();
 

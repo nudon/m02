@@ -1,8 +1,15 @@
 #include <stdlib.h>
+#include <stdint.h>
+//#include <SDL2/SDL.h>
+#include "myMap.h"
 #include "myNPC.h"
+#include "myImage.h"
 #include "gameState.h"
 #include "myInput.h"
+#include "systemLimits.h"
 #include <assert.h>
+
+//extern int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 //in terms of memory management for sprite holders
 //bit of a pickle here, since the npc_sprite_holder is shared among npcs
@@ -18,9 +25,15 @@ static void prependToNPC_list(NPC_list_t* list, NPC_node_t* new);
 
 static void removeFromNPC_list(NPC_list_t* list, NPC_node_t* node);
 
-extern tile_map_t* activeMap;
+static NPC_node_t* controlledCharacter;
 
-//extern GameState state;
+NPC_node_t* getControlledCharacter() {
+  return controlledCharacter;
+}
+
+void setControlledCharacter(NPC_node_t* node) {
+  controlledCharacter = node;
+}
 
 void pickDestLoop(NPC_move_list* npcList) {
   NPC_node_t* current = npcList->idleList->start;
@@ -35,8 +48,8 @@ void pickDestLoop(NPC_move_list* npcList) {
 void pickDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   uint8_t lFlags = npcNode->storedNPC->flags;
   tile_pos_t* pos = npcNode->storedNPC->position;
-  if (lFlags == 1) {
-    singleInput(npcNode);
+  if (isControlled(npcNode->storedNPC)) {
+    characterInput(npcNode);
     if (!equalTilePos(npcNode->dest, pos)) {
       changeToMoveList(totNPC, npcNode);
     }
@@ -121,7 +134,7 @@ void moveToDest(NPC_move_list* totNPC, NPC_node_t* npcNode) {
 void positionShift(NPC_node_t* npcNode, int* shiftPos, int shiftAmount) {
   *shiftPos = *shiftPos +  shiftAmount;
   updateNPCPos(npcNode->storedNPC);
-  if (!validPos(npcNode->storedNPC->position)) {
+  if (!validPos(npcNode->storedNPC->position) && (!isDebuging(npcNode->storedNPC))) {
     *shiftPos = *shiftPos - shiftAmount;
     updateNPCPos(npcNode->storedNPC);
     setNPCPosition(npcNode->storedNPC, npcNode->storedNPC->position);
@@ -130,13 +143,13 @@ void positionShift(NPC_node_t* npcNode, int* shiftPos, int shiftAmount) {
 }
 
 int validPos(tile_pos_t* tile) {
-  if(tile->posX < 0 || tile->posX >= activeMap->cols) {
+  if(tile->posX < 0 || tile->posX >= getActiveMap()->cols) {
     return 0;
   }
-  else if(tile->posY < 0 || tile->posY >= activeMap->rows) {
+  else if(tile->posY < 0 || tile->posY >= getActiveMap()->rows) {
     return 0;
   }
-  else if(isAWall(getTileFromMapPos(activeMap,tile))) {
+  else if(isAWall(getTileFromMapPos(getActiveMap(),tile))) {
     return 0;
   }
   return 1;
@@ -152,8 +165,86 @@ void updateNPCPos(NPC_t* npc) {
     npc->position->posY += round((double)tileOffset / TILED);
   }
 }
+void drawAllNPCS(NPC_move_list* list) {
+  drawNPCList(list->idleList);
+  drawNPCList(list->moveList);
+}
+
+void drawNPCList(NPC_list_t* list) {
+  NPC_node_t* current = list->start;
+  while(current != NULL) {
+    drawNPC(current->storedNPC);
+    current = current->next;
+  }
+}
+
+void drawNPC(NPC_t* npc) {
+  SDL_Rect srcRect, destRect;
+  SDL_Renderer* rend = getRenderer();
+  npc_pos_t* cameraPos = getCameraPos();
+  destRect.x = npc->pixelPos->pixPosX + getDrawScreen()->x;
+  destRect.y = npc->pixelPos->pixPosY + getDrawScreen()->y;
+  destRect.w = TILED;
+  destRect.h = TILED;
+  if (destRect.x + TILED < cameraPos->pixPosX - (SCREEN_WIDTH / 2) ||
+      destRect.x - TILED > cameraPos->pixPosX + (SCREEN_WIDTH / 2)) {
+  }
+  else if (destRect.y + TILED < cameraPos->pixPosY - (SCREEN_HEIGHT / 2) ||
+	   destRect.y - TILED > cameraPos->pixPosY + (SCREEN_HEIGHT / 2)) {
+  }
+  else {
+    if (npc->animState->holder != NULL && npc->animState->holder->sprite_sheet != NULL ) {
+      
+      srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
+      srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
+      srcRect.w = npc->animState->holder->sprite_width;
+      srcRect.h = npc->animState->holder->sprite_height;
+      
+      SDL_RenderCopy(rend,
+		     npc->animState->holder->sprite_sheet,
+		     &srcRect,
+		     &destRect);
+    }
+    else {
+      //use drawing primitives
+      if (isDebuging(npc)) {
+	SDL_SetRenderDrawColor(getRenderer(), 255, 10, 10, 56);
+	myDrawRect(destRect.x, destRect.y, destRect.x + destRect.w, destRect.y + destRect.h);
+      }
+      else if (isControlled(npc)== 1) {
+	myDrawFunRect(destRect.x, destRect.y, destRect.x + destRect.w, destRect.y + destRect.h, 5);
+      }
+
+      else {
+	
+
+	SDL_SetRenderDrawColor( rend, 0x00, 0x00, 0x00, 0xFF );
+	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 2);
+
+	SDL_SetRenderDrawColor( rend, 0xff, 0xff, 0xff, 0xFF );
+	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 3);
+      }
+    }
+  }
+}
 
 
+//goint to divide up npc flags now
+//last bit is going to indicate special debug purposes.
+//first bit is going to indicate character is controlled by user
+//other bit ideas, one for being able to fly
+//one for being a predator
+//one for being prey
+static uint8_t controlledMask = 1;
+static uint8_t debugingMask = 1 << 7;
+
+int isControlled(NPC_t* npc) {
+  return (npc->flags & controlledMask);
+}
+
+int isDebuging(NPC_t* npc) {
+  return (npc->flags & debugingMask);
+}
 
 NPC_t* createNPC() {
   NPC_t* newNPC = malloc(sizeof(NPC_t));
@@ -164,14 +255,34 @@ NPC_t* createNPC() {
   return newNPC;
 }
 
+
 void makeMC(NPC_t* slate) {
   slate->npcID = 0;
   slate->speed = TILED * 1;
   slate->animState->spriteRow = 0;
   slate->animState->spriteCol = 0;
-  slate->flags = 1;
+  slate->flags = controlledMask;
   loadSpriteMC(slate->animState->holder);
 }
+
+void loadSpriteMC(sprite_holder_t* holder) {
+  holder->sprite_width = 32;
+  holder->sprite_height = 32;
+  holder->rows = 1;
+  holder->cols = 1;
+  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png");
+}
+
+void makeDebug(NPC_t* slate) {
+  slate->npcID = -1;
+  slate->speed = TILED * TILED;
+  slate->animState->spriteRow = 0;
+  slate->animState->spriteCol = 0;
+  slate->animState->holder = NULL;
+  slate->flags = controlledMask | debugingMask;
+}
+
+
 static int NPC_COUNT = 1;
 void makeNPC(NPC_t* slate) {
   slate->npcID = NPC_COUNT++;
@@ -207,13 +318,6 @@ void setTilePositionByCord(tile_pos_t* npcPos, int x, int y) {
   npcPos->posY = y;
 }
 
-void loadSpriteMC(sprite_holder_t* holder) {
-  holder->sprite_width = 32;
-  holder->sprite_height = 32;
-  holder->rows = 1;
-  holder->cols = 1;
-  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png");
-}
 
 NPC_node_t* createNPC_node(NPC_t* npc) {
   NPC_node_t* newNode = malloc(sizeof(NPC_node_t));
@@ -256,10 +360,23 @@ void freeNPC_list(NPC_list_t* npcList) {
   free(npcList);
 }
 
+void addControlledCharacter(NPC_t* cont) {
+  NPC_node_t* new = createNPC_node(cont);
+  if (getControlledCharacter() != NULL) {
+    fprintf(stderr, "replacing a controlled Character!\n");
+  }
+  setControlledCharacter(new);
+  prependToNPC_list(getActiveMap()->allNPCS->idleList, new);
+}
 
 void addNPC(NPC_t* npc) {
-  prependToNPC_list(activeMap->allNPCS->idleList, createNPC_node(npc));
+  prependToNPC_list(getActiveMap()->allNPCS->idleList, createNPC_node(npc));
 }
+
+void addNPCToList(NPC_t* npc, NPC_list_t* list) {
+  prependToNPC_list(list, createNPC_node(npc));
+}
+
 void changeToMoveList(NPC_move_list* totNPC, NPC_node_t* npcNode) {
   removeFromNPC_list(totNPC->idleList, npcNode);
   prependToNPC_list(totNPC->moveList, npcNode);

@@ -5,7 +5,7 @@ OBJO = m$(MYNUM).o
 CC = gcc
 
 #Linkied objects
-LO = myImage.o myMap.o myNPC.o temp.o myInput.o myList.o myMenu.o gameState.o
+LO = myImage.o myMap.o myNPC.o temp.o myInput.o myList.o myMenu.o gameState.o systemLimits.o
 
 ALLOBJO = $(OBJO) $(LO)
 
@@ -45,6 +45,8 @@ myList.o : myList.c
 myMenu.o : myMenu.c
 	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 gameState.o : gameState.c
-	$(CC) $(COMPILER_FLAGS) -c -o $@ $<	
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
+systemLimits.o : systemLimits.c
+	$(CC) $(COMPILER_FLAGS) -c -o $@ $<
 clear:
 	rm $(ALLOBJO) m02

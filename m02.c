@@ -2,12 +2,13 @@
 #include <pthread.h>
 
 //#include "dirNav.h"
-#include "myMap.h"
 #include "myImage.h"
+#include "myMap.h"
 #include "myNPC.h"
-#include "myMapSections.h"
+//#include "myMapSections.h"
 #include "gameState.h"
 #include "myInput.h"
+#include "myMenu.h"
 
 //prototypes 
 static int init();
@@ -16,7 +17,7 @@ static void myClose();
 
 static int loadMedia();
 
-static int  startDebug();
+static int startDebug();
 
 static void gameLoop();
 
@@ -24,30 +25,37 @@ void pauseMenu();
 
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-
-//enum GameState state;
-
-
+//so, basically added things, broke things, fixed things
+//and mapEdit is causing things to go unresponsive
+//calling it a day on this. First go make a sprite for debug
+//maybe also initialize debug's position
 
 //Globals
-SDL_Window* gWin = NULL;
-//SDL_Renderer* gRan = NULL;
-int quit = 0;
-npc_pos_t* cameraPos;
+static SDL_Window* gWin = NULL;
 SDL_Color backgroundColor;
 static int updateWait = 15;
 
-SDL_Rect drawnScreen;
-SDL_Rect drawnMap;
+//extern inits
+int SCREEN_WIDTH = 480;
+int SCREEN_HEIGHT = 360;
+//const int MAXPATHLEN = 255;
+
+//SDL_Rect drawnScreen;
+//SDL_Rect drawnMap;
 SDL_Texture* currMapBG = NULL;
-tile_map_t* activeMap = NULL;
-const int SCREEN_WIDTH = 480;
-const int SCREEN_HEIGHT = 360;
+//tile_map_t* activeMap = NULL;
 const int SLEEP_TIME_MS = 25;
   
 //so, m02. Goal is to somehow get a basic topdown view going
 //basic controls, have some image as a background
 //additionally, having some other animate creatures
+
+//kind of unhappy with how text entry is working out
+//mostly realized that anytime I have a different kind of input I need a new state
+//believe it's better to have substates. where the action from m02 is the same
+//but somewhere down the line menuInput sees the substate and goes to the correct handler
+//
+
 
 //done with that, next thing that would be nice is get a map editor going
 
@@ -77,7 +85,7 @@ const int SLEEP_TIME_MS = 25;
 //like allow submenus, basically have some way of dividing a menu into rectangles, each of those contain menues
 
 int main(int argc, char** args) {
-  quit = 0;
+  //  quit = 0;
   if (init() == 0) {
     if (loadMedia() == 0) {
       SDL_Texture* logo = loadTexture("/home/nudon/prg/gam/sdl/pocus.png");
@@ -109,10 +117,10 @@ int main(int argc, char** args) {
 
 static int startDebug() {
   int fail = 0;
-  activeMap = debugMap();
+  setActiveMap(debugMap());
   //makeSections(activeMap);
-  if (activeMap != NULL) {
-    currMapBG = cinterTiles(activeMap);
+  if (getActiveMap() != NULL) {
+    currMapBG = cinterTiles(getActiveMap());
     if (currMapBG != NULL) {
       startDebugPopulate();
     }
@@ -131,7 +139,18 @@ static int startDebug() {
 
 void gameLoop() {
   SDL_Renderer* gRan = getRenderer();
-  setDrawnMap(activeMap, cameraPos);
+  setDrawnMap(getActiveMap(), getCameraPos());
+  
+  //orphan code, needs a home
+  NPC_move_list* mapEditList = createNPC_move_list();
+  NPC_t* debug = createNPC();
+  setNPCPositionByCord(debug, 0, 0);
+  makeDebug(debug);
+			 
+  addNPCToList(debug, mapEditList->idleList);
+  //offer your support today
+
+  
   while(getGameState() != GAMEQUIT) {
     setBGColor(0,0,0,0xff);
     SDL_RenderClear(gRan);
@@ -140,23 +159,34 @@ void gameLoop() {
     //wrap whatever's in the code block within a function
     //want to keep the number of seperate drawLoops going on down to one
     //so for menu's and all that, want to develop actions to not be a loop
-
+    SDL_RenderCopy(gRan, currMapBG, getDrawMap(), getDrawScreen());
+    drawAllNPCS(getActiveMap()->allNPCS);
     //gameRun functions
     if(getGameState() == GAMERUN) {
-      pickDestLoop(activeMap->allNPCS);
-      moveDestLoop(activeMap->allNPCS);
-      setDrawnMap(activeMap, cameraPos);
+      pickDestLoop(getActiveMap()->allNPCS);
+      moveDestLoop(getActiveMap()->allNPCS);
+      setDrawnMap(getActiveMap(), getCameraPos());
     }
-    SDL_RenderCopy(gRan, currMapBG, &drawnMap, &drawnScreen);
-    drawAllNPCS(activeMap->allNPCS);
+    else if (getGameState() == GAMEMAPEDIT) {
+      pickDestLoop(mapEditList);
+      moveDestLoop(mapEditList);
+      drawAllNPCS(mapEditList);
+    }
     //gamePause functions
     if(getGameState() == GAMEPAUSE) {
-      if (getActiveMenu() == NULL) {
-	setActiveMenu(getMainMenu());
-      }
+      //currently, this is causing a segfault
+      //pretty sure it was an issue with me adding a new field to menustruct
+      //clearing object files and making fresh worked
       getActiveMenu()->action();
     }
-    
+
+    if( getGameState() == GAMETEXTENTRY) {
+      //currently, this is causing a segfault
+      //pretty sure it was an issue with me adding a new field to menustruct
+      //clearing object files and making fresh worked
+      getActiveMenu()->action();
+    }
+
     SDL_Delay(updateWait);
     SDL_RenderPresent(gRan);
   }
@@ -164,13 +194,7 @@ void gameLoop() {
 
 int init() {
   SDL_Renderer* rend = NULL;
-  drawnMap.x = 0;
-  drawnMap.y = 0;
-  drawnMap.w = SCREEN_WIDTH;
-  drawnMap.h = SCREEN_HEIGHT;
-  cameraPos = malloc(sizeof(npc_pos_t));
-  cameraPos->pixPosX = 0;
-  cameraPos->pixPosY = 0;
+  setCameraPos(malloc(sizeof(npc_pos_t)));
   int fail = 0;
   if(SDL_Init(SDL_INIT_VIDEO) >= 0) {
     gWin = SDL_CreateWindow("SDL, Now with renderererers",
@@ -189,6 +213,7 @@ int init() {
 	  if (TTF_Init() != -1) {
 	    setActiveMenu(NULL);
 	    setMainMenu(createMainMenu());
+	    setMapEditMenu(createMapEditMainMenu());
 	    setGameState(GAMERUN);
 	  }
 	  else {
@@ -230,7 +255,7 @@ int loadMedia() {
 }
 
 void myClose() {
-  freeMap(activeMap);
+  freeMap(getActiveMap());
   SDL_DestroyTexture(currMapBG);
   currMapBG = NULL;
   freeRenderer();

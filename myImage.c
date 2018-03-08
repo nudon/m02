@@ -1,4 +1,7 @@
+//#include <SDL2/SDL.h>
 #include "myImage.h"
+#include <math.h>
+#include "myMenu.h"
 
 static SDL_Renderer* rend;
 
@@ -45,6 +48,21 @@ SDL_Texture* loadTexture(char* path) {
     newText = NULL;
   }
   return newText;
+}
+
+void drawText(TTF_Font* font, char* text, SDL_Color* textColor, SDL_Rect* dstRect) {
+  SDL_Texture* texture = drawTextToTexture(font, text, textColor);
+  SDL_RenderCopy(getRenderer(), texture, NULL, dstRect);
+  SDL_DestroyTexture(texture);
+}
+
+SDL_Texture* drawTextToTexture(TTF_Font* font, char* text, SDL_Color* textColor) {
+  SDL_Surface* textSurf;
+  SDL_Texture* textText;
+  textSurf = TTF_RenderText_Solid(font, text, *textColor);
+  textText = loadSurfaceToTexture(textSurf);
+  SDL_FreeSurface(textSurf);
+  return textText;
 }
 
 SDL_Surface* createSurfaceFromDim(int w, int h) {

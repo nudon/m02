@@ -1,14 +1,18 @@
 #ifndef FILE_GAMESTATE_SEEN
 #define FILE_GAMESTATE_SEEN
 
-enum GameState {
+enum gameStates {
   GAMERUN,
   GAMEPAUSE,
+  GAMEMAPEDIT,
+  GAMETEXTENTRY,
   GAMEQUIT
 };
 
-enum GameState getGameState();
+typedef enum gameStates gameState;
 
-void setGameState(enum GameState);
+gameState getGameState();
+
+void setGameState(gameState);
 
 #endif

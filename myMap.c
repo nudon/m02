@@ -1,7 +1,11 @@
+//#include <SDL2/SDL.h>
 #include "myMap.h"
-extern npc_pos_t* cameraPos;
-extern SDL_Rect drawnMap, drawnScreen;
-extern int SCREEN_WIDTH, SCREEN_HEIGHT;
+#include "myImage.h"
+#include "myMenu.h"
+#include "systemLimits.h"
+static SDL_Rect drawnMap, drawnScreen;
+static npc_pos_t* cameraPos;
+static tile_map_t* activeMap = NULL;
 
 tile_map_t* debugMap() {
   tile_map_t* debugMap = malloc(sizeof(tile_map_t));
@@ -20,9 +24,10 @@ tile_t** debugTilesInit() {
   for (int i = 0; i < 16; i++) {
     debugTiles[i] =  (tile_t*)malloc(sizeof(tile_t) * 16);
     for (int j = 0; j < 16; j++) {
-      debugTiles[i][j] = *(createTile(blackTile, j,i));
+      debugTiles[i][j] = *(createTile(j,i));
+      writeFilePath(debugTiles[i][j].tilePath, blackTile);
       if ((j + (i % 2)) % 2 == 0) {
-	debugTiles[i][j].tilePath = whiteTile;
+	writeFilePath(debugTiles[i][j].tilePath, whiteTile);
       }
     }
   }
@@ -36,20 +41,20 @@ void startDebugPopulate() {
     setNPCPositionByCord(mc, 1 , 1);
     addNPC(mc);
     
-    NPC_t* tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 8, 8);
-    addNPC(tori);
+    NPC_t* circ = createNPC();
+    makeNPC(circ);
+    setNPCPositionByCord(circ, 8, 8);
+    addNPC(circ);
 
-    tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 7, 7);
-    addNPC(tori);
+    circ = createNPC();
+    makeNPC(circ);
+    setNPCPositionByCord(circ, 7, 7);
+    addNPC(circ);
     
-    tori = createNPC();
-    makeNPC(tori);
-    setNPCPositionByCord(tori, 9, 9);
-    addNPC(tori);
+    circ = createNPC();
+    makeNPC(circ);
+    setNPCPositionByCord(circ, 9, 9);
+    addNPC(circ);
 }
 
 void setDrawnMap( tile_map_t * map, npc_pos_t* currentPos) {
@@ -93,14 +98,14 @@ void setDrawnMap( tile_map_t * map, npc_pos_t* currentPos) {
   cameraPos->pixPosY = drawnMap.y + (drawnMap.h / 2);
 }
 
-tile_t * createTile(char* textPath, int x, int y) {
+tile_t * createTile(int x, int y) {
   tile_t* tile = malloc(sizeof(tile_t));
-  tile->tilePath = textPath;
+  tile->tilePath = malloc(sizeof(char) * MAXPATHLEN );
   tile->tileContents = malloc(sizeof(item_t*) * 12);
   tile->tilePosition = createTilePos(x,y);
   return tile;
-			
 }
+
 
 void freeTile(tile_t* tile) {
   freeTilePos(tile->tilePosition);
@@ -214,63 +219,29 @@ tile_t* getTileFromMapCord(tile_map_t* map, int x, int y) {
   }
 }
 
-void drawAllNPCS(NPC_move_list* list) {
-  drawNPCList(list->idleList);
-  drawNPCList(list->moveList);
+
+SDL_Rect* getDrawMap() {
+  return &drawnMap;
 }
 
-void drawNPCList(NPC_list_t* list) {
-  NPC_node_t* current = list->start;
-  while(current != NULL) {
-    drawNPC(current->storedNPC);
-    current = current->next;
-  }
+SDL_Rect* getDrawScreen() {
+  return &drawnScreen;
 }
 
-void drawNPC(NPC_t* npc) {
-  SDL_Rect srcRect, destRect;
-  SDL_Renderer* rend = getRenderer();
-  destRect.x = npc->pixelPos->pixPosX + drawnScreen.x;
-  destRect.y = npc->pixelPos->pixPosY + drawnScreen.y;
-  destRect.w = TILED;
-  destRect.h = TILED;
-  if (destRect.x + TILED < cameraPos->pixPosX - (SCREEN_WIDTH / 2) ||
-      destRect.x - TILED > cameraPos->pixPosX + (SCREEN_WIDTH / 2)) {
-  }
-  else if (destRect.y + TILED < cameraPos->pixPosY - (SCREEN_HEIGHT / 2) ||
-	   destRect.y - TILED > cameraPos->pixPosY + (SCREEN_HEIGHT / 2)) {
-  }
-  else {
-    if (npc->animState->holder->sprite_sheet != NULL && 0) {
-      
-      srcRect.x = npc->animState->spriteCol * npc->animState->holder->sprite_width;
-      srcRect.y = npc->animState->spriteRow * npc->animState->holder->sprite_height;
-      srcRect.w = npc->animState->holder->sprite_width;
-      srcRect.h = npc->animState->holder->sprite_height;
-      
-      SDL_RenderCopy(rend,
-		     npc->animState->holder->sprite_sheet,
-		     &srcRect,
-		     &destRect);
-    }
-    else {
-      //use drawing primitives
-      if (npc->flags == 1) {
-	myDrawFunRect(destRect.x, destRect.y, destRect.x + destRect.w, destRect.y + destRect.h, 5);
-      }
-      else {
-	
-
-	SDL_SetRenderDrawColor( rend, 0x00, 0x00, 0x00, 0xFF );
-	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 2);
-
-	SDL_SetRenderDrawColor( rend, 0xff, 0xff, 0xff, 0xFF );
-	myDrawCirc(destRect.x + (TILED / 2), destRect.y + (TILED / 2), TILED / 3);
-      }
-    }
-  }
+npc_pos_t* getCameraPos() {
+  return cameraPos;
+}
+void setCameraPos(npc_pos_t* new) {
+  cameraPos = new;
 }
 
+void setActiveMap(tile_map_t* newMap) {
+  activeMap = newMap;
+}
+
+tile_map_t* getActiveMap() {
+  return activeMap;
+}
 
 int isAWall(tile_t* tile) {
   if (tile == NULL || tile->isWall == 1) {
@@ -280,15 +251,3 @@ int isAWall(tile_t* tile) {
     return 0;
   }
 }
-
-
-//so, map editing. This is going to be fairly complicated, mostly because they're going to probably have their own menues
-//basic idea, have some active tile. maybe make it a red rectangle. have it move around, probably reuse the single input code
-//either for userinput or setting the drawn Map.
-//could actually save off old movelist and idlelist, and just create a new one for just the camera thing
-//could then set speed to some specific value, to allow for 1-frame tile traversal. Then just restore lists at end
-//anyways, base case, have that move around using arrow keys. That part is easy.
-//on pushing some special key, maybe enter or e, pull up some menu
-//basically, will show the current values of the highlighted tile. That might require some reworking of menus, but simple
-//the annoying part will be getting input through the game window. Will need to learn how to do that first
-//then have to deal with sanitizing it. after that, maybe have a call to cinterTiles, to update map? at least when tile path changes

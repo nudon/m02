@@ -1,10 +1,10 @@
 #include "gameState.h"
-static enum GameState state;
+static gameState state;
 
-enum GameState getGameState() {
+gameState getGameState() {
   return state;
 }
 
-void setGameState(enum GameState newState) {
+void setGameState(gameState newState) {
   state = newState;
 }
