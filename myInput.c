@@ -21,18 +21,6 @@ void setTempString(char* new) {
 }
 
 static void commitStringChanges();
-//issue of unifying all calls to get input
-//this thing takes an npcNode.
-//might just have some funciton in myNpc to get/set npc who gets controlled
-//will try it out
-
-//annoying issue of setting the controlledNPC, since it's an NPC Node
-//and I'm currently only calling that in addNPC functions
-//could create new code specifically for adding and setting controlled character
-//or differentiate input into 2 groups
-//character movemeint input
-//and menuInput
-//going to do the latter approach
 
 void characterInput(NPC_node_t* node) {
   SDL_Event e;
@@ -65,19 +53,19 @@ void characterInput(NPC_node_t* node) {
 
 void menuInput() {
  SDL_Event e;
- gameState curr = getGameState();
+ gameSubState curr = getGameSubState();
  int val = -1;
   while(SDL_PollEvent(&e) != 0 ) {
     if (e.type == SDL_QUIT) {
       setGameState(GAMEQUIT);
     }
-    else if (curr == GAMEPAUSE) {
+    else if (curr == MENUNORM) {
       if (e.type == SDL_KEYDOWN) {
 	val = basicMenuInputHandler(&e);
       }
     }
-    else if (curr == GAMETEXTENTRY) {
-      if (e.type == SDL_TEXTINPUT || SDL_KEYDOWN) {
+    else if (curr == MENUTEXTENTRY) {
+      if (e.type == SDL_TEXTINPUT || e.type == SDL_KEYDOWN) {
 	val = handleTextEntry(&e);
       }
     }
@@ -113,7 +101,6 @@ int handleSingleInput(NPC_node_t* npcNode, SDL_Event* e) {
   case SDLK_ESCAPE:
     activeKey = KEY_ESCAPE;
     if (checkAndUpdateKey(activeKey, e)) {
-    	setGameState(GAMEPAUSE);
 	setActiveMenu(getMainMenu());
     }
   default:
@@ -159,14 +146,7 @@ int basicMenuInputHandler(SDL_Event* e) {
   case SDLK_ESCAPE:
     key = KEY_ESCAPE;
     if (checkAndUpdateKey(key, e)) {
-      if (activeMenu->parent != NULL) {
-	setActiveMenu(activeMenu->parent);
-      }
-      else {
-	setGameState(activeMenu->returnState);
-	setActiveMenu(NULL);
-
-      }
+      setActiveMenu(activeMenu->parent);
     }
     break;
   default:
@@ -176,16 +156,6 @@ int basicMenuInputHandler(SDL_Event* e) {
   return val;
 }
 
-//when t is pressed
-//set field to actual field to be edited
-//and copy contents of field into temp
-//also want to keep track of enter/esc key presses
-//1 to commit changes, other to abondon them
-//also, issue of setting a non-main menu with a key
-//don't have access to them here. Would either need
-//1, a function that does access the right menuentries
-//2, hardcode it in.
-//neither is really appealing in the long term. 
 int handleMapEditInput(NPC_node_t* node, SDL_Event* e) {
   //basically, just move around normally
   //pushing t brings up tile edit menu
@@ -200,10 +170,10 @@ int handleMapEditInput(NPC_node_t* node, SDL_Event* e) {
   
   //accessing things through the menu get awfully terrible though.
   //I could do some additional trickery to set up a mirror tile struct
-  //just have each testEntry point to some field in that
+  //just have each menuEntry point to some field in that
   //in general though that means a copy of dummy copy of every field I want to edit
   //wheras currently I just have 1 for each type of field I want to edit
-  //pushing m brings up map edit menu
+  //pushing m brings up map edit menu, not implemented, but eventually changes map size
   keyArg activeKey;
   tile_pos_t* pos = node->dest;
   int val = 1;
@@ -223,8 +193,6 @@ int handleMapEditInput(NPC_node_t* node, SDL_Event* e) {
   case SDLK_t:
     activeKey = KEY_t;
     if (checkAndUpdateKey(activeKey, e)) {
-      
-      setGameState(GAMEPAUSE);
       tile_pos_t* position = node->storedNPC->position;
       stringField = getTileFromMapCord(getActiveMap(), position->posX, position->posY)->tilePath;
       memcpy(stringTemp, stringField, strlen(stringField));
@@ -236,7 +204,6 @@ int handleMapEditInput(NPC_node_t* node, SDL_Event* e) {
   case SDLK_ESCAPE:
     activeKey = KEY_ESCAPE;
     if (checkAndUpdateKey(activeKey, e)) {
-      setGameState(GAMEPAUSE);
       setActiveMenu(getMapEditMenu());
     }
   default:
@@ -247,6 +214,8 @@ int handleMapEditInput(NPC_node_t* node, SDL_Event* e) {
 }
 
 int handleTextEntry(SDL_Event* e) {
+  //this is running too much. looks like mouse events are also getting read?
+  //yeah, had an || SDL_TEXTENTRY in if before calling this. 
   int val = 1;
   keyArg key;
   if (e->type == SDL_KEYDOWN) {
@@ -257,13 +226,7 @@ int handleTextEntry(SDL_Event* e) {
       //go back to previouse menu
       key = KEY_ESCAPE;
       if (checkAndUpdateKey(key, e)) {
-	if (getActiveMenu()->parent != NULL) {
-	  setActiveMenu(getActiveMenu()->parent);
-	}
-	else {
-	  setActiveMenu(NULL);
-	  setGameState(GAMERUN);
-	}
+	setActiveMenu(getActiveMenu()->parent);
       }
       break;
     case SDLK_RETURN:
@@ -278,12 +241,21 @@ int handleTextEntry(SDL_Event* e) {
       }
       break;
       //think I also need some handling for backspaces, copying, and pasting
+    case SDLK_BACKSPACE:
+      val = strlen(stringTemp);
+      if (val != 0) {
+	stringTemp[val - 1] = '\0';
+      }
     default:
       val = -1;
       break;
     }
   }
   else if (e->type == SDL_TEXTINPUT) {
+    fprintf(stderr, "doing the text entry!\n");
+    fprintf(stderr, "found text (%s)!\n", e->text.text);
+    memcpy(&(stringTemp[strlen(stringTemp)]), e->text.text, strlen(e->text.text));
+    fprintf(stderr, "Stringtemp is  (%s)!\n", stringTemp);
     //see StartTextInput and textInput events for user input
     //modify temporary text
     //do something with  e->text.text
@@ -330,7 +302,11 @@ void updateKeys(SDL_Event* e) {
 
 void commitStringChanges() {
   //for now, just going to overwrites stringField with stringTemp;
+  fprintf(stderr, "re cintering tiles\n");
   writeFilePath(stringField, stringTemp);
+  SDL_DestroyTexture(getMapBG());
+  setMapBG(cinterTiles(getActiveMap()));
+
 }
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e) {

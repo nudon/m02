@@ -243,6 +243,14 @@ tile_map_t* getActiveMap() {
   return activeMap;
 }
 
+SDL_Texture* getMapBG() {
+  return activeMap->mapBG;
+}
+
+void setMapBG(SDL_Texture* newBG) {
+  activeMap->mapBG = newBG; 
+}
+
 int isAWall(tile_t* tile) {
   if (tile == NULL || tile->isWall == 1) {
     return 1;

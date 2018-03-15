@@ -25,11 +25,6 @@ void pauseMenu();
 
 void setBGColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-//so, basically added things, broke things, fixed things
-//and mapEdit is causing things to go unresponsive
-//calling it a day on this. First go make a sprite for debug
-//maybe also initialize debug's position
-
 //Globals
 static SDL_Window* gWin = NULL;
 SDL_Color backgroundColor;
@@ -54,7 +49,9 @@ const int SLEEP_TIME_MS = 25;
 //mostly realized that anytime I have a different kind of input I need a new state
 //believe it's better to have substates. where the action from m02 is the same
 //but somewhere down the line menuInput sees the substate and goes to the correct handler
-//
+//also, kind of wanting to put some statehandling in menus
+//specifically, specifying which substate/state to change to when entering menu
+//kind of annoying, but alternate is setting subspace during action calls, 
 
 
 //done with that, next thing that would be nice is get a map editor going
@@ -120,8 +117,8 @@ static int startDebug() {
   setActiveMap(debugMap());
   //makeSections(activeMap);
   if (getActiveMap() != NULL) {
-    currMapBG = cinterTiles(getActiveMap());
-    if (currMapBG != NULL) {
+    setMapBG(cinterTiles(getActiveMap()));
+    if (getMapBG() != NULL) {
       startDebugPopulate();
     }
     else {
@@ -159,7 +156,7 @@ void gameLoop() {
     //wrap whatever's in the code block within a function
     //want to keep the number of seperate drawLoops going on down to one
     //so for menu's and all that, want to develop actions to not be a loop
-    SDL_RenderCopy(gRan, currMapBG, getDrawMap(), getDrawScreen());
+    SDL_RenderCopy(gRan, getMapBG(), getDrawMap(), getDrawScreen());
     drawAllNPCS(getActiveMap()->allNPCS);
     //gameRun functions
     if(getGameState() == GAMERUN) {
@@ -179,14 +176,7 @@ void gameLoop() {
       //clearing object files and making fresh worked
       getActiveMenu()->action();
     }
-
-    if( getGameState() == GAMETEXTENTRY) {
-      //currently, this is causing a segfault
-      //pretty sure it was an issue with me adding a new field to menustruct
-      //clearing object files and making fresh worked
-      getActiveMenu()->action();
-    }
-
+    
     SDL_Delay(updateWait);
     SDL_RenderPresent(gRan);
   }

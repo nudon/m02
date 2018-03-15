@@ -27,6 +27,10 @@ struct menu_struct {
   TTF_Font* font;
 
   gameState returnState;
+  gameSubState returnSubState;
+
+  gameState newState;
+  gameSubState newSubState;
   //void (*inputHandler) (SDL_Event* e);
   //think I want this void
   void (*action) ();

@@ -5,15 +5,15 @@
 #include "myList.h"
 #include "myMenu.h"
 #include "gameState.h"
-//so, slight redesign
-//idea is, create the menus, and their submenus, and so on.
-//then, maybe after, or maybe only on pulling up a menu, set the menuImage
-//menuImage is a texture, of the widht and height, of the bgColor, with all of the submenu text being drawn
-
-//also, working with arrays now, since I'm not going to be adding/removing menu lists on the go
-//so structure of menus will be super hardcoded.
 
 //have a spartan menu system now. Would like to eventually change it to allow submenues to sometimes  be displayed in full
+
+//current issue here. Having changemenu change state, which isn't working propery.
+//debating wheather I should fix it now or focus on moving over the my environment idea
+//think I'll have to change it either way, may as well get it over with
+
+static int ENTRY_HEIGHT= 48 ;
+
 
 static menu* createResumeMenu(menu* parent);
 static menu* createMapEditMenu(menu* parent);
@@ -21,7 +21,7 @@ static menu* createQuitMenu(menu* parent);
 static menu* createMenu();
 static menu* createStringInput(menu* parent, char* message);
 static menu* createMenuOpt(int w, int h, char* msg);
-static menu* createTileStructEntry();
+static menu* createTileStructEntry(menu* parent);
 static void setFont(TTF_Font* font, char* fontPath);
 static void basicMenuAction();
 static void resumeAction();
@@ -54,7 +54,15 @@ menu* getMapEditMenu() {
 }
 
 void setActiveMenu(menu* newMenu) {
-  currentMenu = newMenu;
+  if (newMenu != NULL) {
+    setGameState(newMenu->newState);
+    setGameSubState(newMenu->newSubState);
+    currentMenu = newMenu;
+  }
+  else if (currentMenu != NULL) {
+    setGameState(currentMenu->returnState);
+    setGameSubState(currentMenu->returnSubState);
+  }
 }
 
 void setMainMenu(menu* newMenu) {
@@ -90,14 +98,17 @@ static menu* createMenuOpt(int w, int h, char* msg) {
 
   //ideally I'd have this be proportional to either screen dim
   //or at least the menu dim. 
-  new->entryHeight = 48;
+  new->entryHeight = ENTRY_HEIGHT ;
   new->menuEntries = NULL;
   new->activeIndex = 0;
   new->arrayBound = 0;
   
   new->parent = NULL;
-  new->returnState = 0;
-
+  new->returnState = GAMERUN;
+  new->returnSubState = MOVENORM;
+  new->newState = GAMEPAUSE;
+  new->newSubState = MENUNORM;
+  
   new->text = msg;
   new->textColor = malloc(sizeof(SDL_Color));
   new->textColor->r = 235;
@@ -156,6 +167,9 @@ menu* createMainMenu() {
   menu* mainMenu = createMenu();
   mainMenu->text = "MainMenu";
   mainMenu->returnState = GAMERUN;
+  mainMenu->returnSubState = MOVENORM;
+  mainMenu->newState = GAMEPAUSE;
+  mainMenu->newSubState = MENUNORM;
   mainMenu->arrayBound = 3;
   mainMenu->menuEntries = malloc(sizeof(menu) * mainMenu->arrayBound);
   mainMenu->menuEntries[count++] = *createResumeMenu(mainMenu);
@@ -166,12 +180,27 @@ menu* createMainMenu() {
   return mainMenu;
 }
 
+void maintainState(menu* child, menu* parent) {
+  if (parent != NULL) {
+    child->returnState = parent->newState;
+    child->returnSubState = parent->newSubState;
+    child->newState = parent->newState;
+    child->newSubState = parent->newSubState;
+  }
+  else {
+    fprintf(stderr, "attempting to maintainState on null parent\n");
+  }
+}
 
 static menu* createResumeMenu(menu* parent) {
   menu* resume = createMenu();
   resume->text = "Resume";
+  maintainState(resume, parent);
+  resume->newState = GAMERUN;
+  resume->newSubState = MOVENORM;
   resume->arrayBound = 0;
   resume->menuEntries = NULL;
+
   resume->action = &resumeAction;
   resume->parent = parent;
   return resume;
@@ -179,12 +208,13 @@ static menu* createResumeMenu(menu* parent) {
 
 static void resumeAction() {
   setActiveMenu(NULL);
-  setGameState(GAMERUN);
 }
 static menu* createMapEditMenu(menu* parent) {
   menu* mapEdit = createMapEditMainMenu();
   mapEdit->action = &mapEditAction;
-  
+  maintainState(mapEdit, parent);
+  mapEdit->newState = GAMEMAPEDIT;
+  mapEdit->newSubState = MOVENORM;
   mapEdit->text = "Edit map";
   mapEdit->arrayBound = 0;
   mapEdit->menuEntries = NULL;
@@ -197,11 +227,13 @@ static menu* createMapEditMenu(menu* parent) {
 static void mapEditAction() {
   setActiveMenu(NULL);
   setGameState(GAMEMAPEDIT);
+  setGameSubState(MOVENORM);
 }
 
 static menu* createQuitMenu(menu* parent) {
   menu* quitMenu = createMenu();
   quitMenu->text = "Quit";
+  maintainState(quitMenu, parent);
   quitMenu->arrayBound = 0;
   quitMenu->menuEntries = NULL;
   quitMenu->action = &quitAction;
@@ -231,27 +263,31 @@ menu* createMapEditMainMenu() {
   menu* new = createMenu();
   new->text = "Edit menu";
   new->returnState = GAMEMAPEDIT;
+  new->returnSubState = MOVENORM;
+  new->newState = GAMEPAUSE;
+  new->newSubState = MENUNORM;
   new->arrayBound = 2;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
-  new->menuEntries[count++] = *createResumeMenu(mainMenu);
+  new->menuEntries[count++] = *createResumeMenu(new);
   //at least want a menu for each thing to edit
   //want tile, and map size
-  new->menuEntries[count++] = *createTileStructEntry();
+  new->menuEntries[count++] = *createTileStructEntry(new);
   //new->menuEntries[count++] = something for map dimension
   fillMenu(new);
   
   return new;  
 }
-static menu* createTileStructEntry() {
+static menu* createTileStructEntry(menu* parent) {
   int count = 0;
   menu* new = createMenu();
   new->text = "Tile Menu";
-  new->returnState = GAMEMAPEDIT;
+  maintainState(new, parent);
   new->arrayBound = 3;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
   new->menuEntries[count++] = *createStringInput(new,"Path to tile background");
   new->menuEntries[count++] = *createStringInput(new,"tile contents menu (under construction)");
   new->menuEntries[count++] = *createStringInput(new,"wall status");
+  new->parent = parent;
   fillMenu(new);
   return new;
 }
@@ -262,7 +298,9 @@ static menu* createStringInput(menu* parent, char* message) {
   //I'm forseeing that I'll be needing to use the char* temp from myInput
   //so atleast need a getter function for that
   menu* new = createMenu();
-  new->returnState = GAMEMAPEDIT;
+  maintainState(new, parent);
+  new->newState = GAMEPAUSE;
+  new->newSubState = MENUTEXTENTRY;
   new->width = 1;
   new->height = 1;
   
@@ -277,8 +315,6 @@ static menu* createStringInput(menu* parent, char* message) {
 
 static void textEntryAction() {
   menuInput();
-  //no , bad
-  //drawCurrentMenu();
   drawTextEntry();
 }
 

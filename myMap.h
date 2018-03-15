@@ -29,12 +29,15 @@ struct {
   int cols;
   tile_t** cells;
   NPC_move_list* allNPCS;
+  SDL_Texture* mapBG;
 } tile_map_t;
 
 void setActiveMap(tile_map_t* newMap);
 tile_map_t* getActiveMap();
 SDL_Rect* getDrawMap();
 SDL_Rect* getDrawScreen();
+SDL_Texture* getMapBG();
+void setMapBG(SDL_Texture* newBG);
 npc_pos_t* getCameraPos();
 void setCameraPos(npc_pos_t* new);
 tile_t* createTile(int x, int y);
