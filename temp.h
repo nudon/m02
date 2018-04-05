@@ -5,12 +5,11 @@
 
 typedef
 struct {
-  int posX;
-  int posY;
-  int section;
-} tile_pos_t;
+  int x;
+  int y;
+} tilePos;
 
 
-tile_pos_t* createTilePos(int x, int y);
-void freeTilePos(tile_pos_t* tilePos);
+tilePos* createTilePos(int x, int y);
+void freeTilePos(tilePos* tilePos);
 #endif

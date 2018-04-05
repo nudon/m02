@@ -3,28 +3,17 @@
 
 enum gameStates {
   GAMERUN,
-  GAMEPAUSE,
   GAMEMAPEDIT,
+  MENU,
+  MENUTEXTENTRY,
   GAMEQUIT
 };
 
-enum subStates {
-  MOVENORM,
-  MENUNORM,
-  MENUTEXTENTRY
-};
-
-typedef enum subStates gameSubState;
 
 typedef enum gameStates gameState;
 
 gameState getGameState();
 
 void setGameState(gameState);
-
-gameSubState getGameSubState();
-
-void setGameSubState(gameSubState newState);
-
 
 #endif

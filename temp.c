@@ -2,14 +2,13 @@
 #include "temp.h"
 
 
-tile_pos_t* createTilePos(int x, int y) {
-  tile_pos_t* tile = malloc(sizeof(tile_pos_t));
-  tile->posX = x;
-  tile->posY = y;
-  tile->section = 0;
+tilePos* createTilePos(int x, int y) {
+  tilePos* tile = malloc(sizeof(tilePos));
+  tile->x = x;
+  tile->y = y;
   return tile;
 }
 
-void freeTilePos(tile_pos_t* tilePos) {
+void freeTilePos(tilePos* tilePos) {
   free(tilePos);
 }

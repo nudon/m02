@@ -5,82 +5,62 @@
 #include "myList.h"
 #include "myMenu.h"
 #include "gameState.h"
+#include "myEnv.h"
+#include "systemLimits.h"
 
 //have a spartan menu system now. Would like to eventually change it to allow submenues to sometimes  be displayed in full
 
-//current issue here. Having changemenu change state, which isn't working propery.
-//debating wheather I should fix it now or focus on moving over the my environment idea
-//think I'll have to change it either way, may as well get it over with
-
-static int ENTRY_HEIGHT= 48 ;
+//basically individual character dimensions
+static int ENTRY_HEIGHT= 12 ;
+static int ENTRY_WIDTH = 8;
+static SDL_Color menuTextCol = {.r = 235, .g = 241, .b = 190, .a = 0};
+static SDL_Color menuBGCol = {.r = 17, .g = 23, .b = 18, .a = 0};
+static SDL_Color inputBGCol = {.r = 243, .g = 221, .b = 233, .a = 0};
+static SDL_Color inputTextCol = {.r = 11, .g = 7, .b = 9, .a = 0};
 
 
 static menu* createResumeMenu(menu* parent);
 static menu* createMapEditMenu(menu* parent);
 static menu* createQuitMenu(menu* parent);
 static menu* createMenu();
+static menu* createTileStructInput(menu* parent, char* message);
 static menu* createStringInput(menu* parent, char* message);
 static menu* createMenuOpt(int w, int h, char* msg);
 static menu* createTileStructEntry(menu* parent);
 static void setFont(TTF_Font* font, char* fontPath);
-static void basicMenuAction();
-static void resumeAction();
-static void mapEditAction();
 static void quitAction();
 static void textEntryAction();
 static void freeMenuSub(menu* aMenu);
 
-extern int SCREEN_WIDTH;
-extern int SCREEN_HEIGHT;
+//extern int SCREEN_WIDTH;
+//extern int SCREEN_HEIGHT;
 
-static menu* currentMenu;
+//static menu* currentMenu;
 
-static menu* mainMenu;
+//static menu* mainMenu;
 
-static menu* mapEditMenu;
+//static menu* mapEditMenu;
+
+char* STRING_TILE_BG_PATH = "Path to BG";
+char* INT_TILE_WALL = "Wall status";
 
 static TTF_Font* globalFont = NULL;
 
-menu* getActiveMenu() {
-  return currentMenu;
-}
-
-menu* getMainMenu() {
-  return mainMenu;
-}
-
-menu* getMapEditMenu() {
-  return mapEditMenu;
-}
-
-void setActiveMenu(menu* newMenu) {
-  if (newMenu != NULL) {
-    setGameState(newMenu->newState);
-    setGameSubState(newMenu->newSubState);
-    currentMenu = newMenu;
-  }
-  else if (currentMenu != NULL) {
-    setGameState(currentMenu->returnState);
-    setGameSubState(currentMenu->returnSubState);
-  }
-}
-
-void setMainMenu(menu* newMenu) {
-  mainMenu = newMenu;
-}
-
-void setMapEditMenu(menu* newMenu) {
-  mapEditMenu = newMenu;
-}
-
 static void setGlobalFont(char* fontPath) {
-  globalFont = TTF_OpenFont(fontPath, 30);
+  globalFont = TTF_OpenFont(fontPath, 15);
   if (globalFont == NULL) {
     fprintf(stderr, "Error on loading font, %s\n", TTF_GetError());
   }
 }
 
 
+
+static void setFont(TTF_Font* font, char* fontPath) {
+  font = TTF_OpenFont(fontPath, 60);
+  if (font == NULL) {
+    fprintf(stderr, "Error on loading font, %s\n", TTF_GetError());
+  }
+}
 
 static menu* createMenu() {
   return createMenuOpt(SCREEN_WIDTH * 2 / 3,  SCREEN_HEIGHT * 2 / 3, "text");
@@ -90,10 +70,7 @@ static menu* createMenuOpt(int w, int h, char* msg) {
   menu * new = malloc(sizeof(menu));
   new->width = w;
   new->height = h;
-  new->bgColor = malloc(sizeof(SDL_Color));
-  new->bgColor->r = 17;
-  new->bgColor->g = 23;
-  new->bgColor->b = 18;
+  new->bgColor = &menuBGCol;
   new->menuImage = NULL;
 
   //ideally I'd have this be proportional to either screen dim
@@ -104,42 +81,32 @@ static menu* createMenuOpt(int w, int h, char* msg) {
   new->arrayBound = 0;
   
   new->parent = NULL;
-  new->returnState = GAMERUN;
-  new->returnSubState = MOVENORM;
-  new->newState = GAMEPAUSE;
-  new->newSubState = MENUNORM;
+  //new->returnState = GAMERUN;
+  //new->newState = MENU;
   
   new->text = msg;
-  new->textColor = malloc(sizeof(SDL_Color));
-  new->textColor->r = 235;
-  new->textColor->g = 241;
-  new->textColor->b = 190;
+  new->textColor = &menuTextCol;
 
-  setGlobalFont("aFont.ttf");
   if (globalFont == NULL) {
+    setGlobalFont("aFont.ttf");
+    if (globalFont == NULL) {
       fprintf(stderr, "if you don't want comicSans, place some other ttf in local dir, name it aFont.ttf\n");
       //got this particular font from https://github.com/antimatter15/doge/blob/master/Comic%20Sans%20MS.ttf
       //who didn't make it, but Vincent Connare apparently did.
       //setFont(globalFont, "comicSans.ttf");
       setGlobalFont("comicSans.ttf");
+    }
   }
   new->font = globalFont;
+  new->action = NULL;
   
-  new->action = &basicMenuAction;
+  //new->action = &basicMenuAction;
   return new;
 }
 
-static void basicMenuAction() {
-  drawCurrentMenu();
-  menuInput();
-}
 
-static void setFont(TTF_Font* font, char* fontPath) {
-  font = TTF_OpenFont(fontPath, 30);
-  if (font == NULL) {
-    fprintf(stderr, "Error on loading font, %s\n", TTF_GetError());
-  }
-}
+
+
 
 //have to do some odd things for freeing, since I'm mallocing a whole block of things at once
 //in mainProcedure, call freeSub on all menuEntries, then free menuEntries, then free menu
@@ -161,118 +128,94 @@ static void freeMenuSub(menu* aMenu) {
 }
 
 //specific menu
-
 menu* createMainMenu() {
   int count = 0;
   menu* mainMenu = createMenu();
   mainMenu->text = "MainMenu";
-  mainMenu->returnState = GAMERUN;
-  mainMenu->returnSubState = MOVENORM;
-  mainMenu->newState = GAMEPAUSE;
-  mainMenu->newSubState = MENUNORM;
+  //mainMenu->newState = GAMERUN;
   mainMenu->arrayBound = 3;
   mainMenu->menuEntries = malloc(sizeof(menu) * mainMenu->arrayBound);
   mainMenu->menuEntries[count++] = *createResumeMenu(mainMenu);
   mainMenu->menuEntries[count++] = *createMapEditMenu(mainMenu);
   mainMenu->menuEntries[count++] = *createQuitMenu(mainMenu);
+  mainMenu->action = transitionToGameRun;
   fillMenu(mainMenu);
 
   return mainMenu;
 }
 
-void maintainState(menu* child, menu* parent) {
-  if (parent != NULL) {
-    child->returnState = parent->newState;
-    child->returnSubState = parent->newSubState;
-    child->newState = parent->newState;
-    child->newSubState = parent->newSubState;
-  }
-  else {
-    fprintf(stderr, "attempting to maintainState on null parent\n");
-  }
-}
-
 static menu* createResumeMenu(menu* parent) {
   menu* resume = createMenu();
   resume->text = "Resume";
-  maintainState(resume, parent);
-  resume->newState = GAMERUN;
-  resume->newSubState = MOVENORM;
+  //maintainState(resume, parent);
+  //resume->newState = GAMERUN;
   resume->arrayBound = 0;
   resume->menuEntries = NULL;
 
-  resume->action = &resumeAction;
+  //resume->action = &resumeAction;
   resume->parent = parent;
+  resume->action = transitionToGameRun;
   return resume;
 }
 
-static void resumeAction() {
-  setActiveMenu(NULL);
-}
+
 static menu* createMapEditMenu(menu* parent) {
   menu* mapEdit = createMapEditMainMenu();
-  mapEdit->action = &mapEditAction;
-  maintainState(mapEdit, parent);
-  mapEdit->newState = GAMEMAPEDIT;
-  mapEdit->newSubState = MOVENORM;
+  //maintainState(mapEdit, parent);
+  //mapEdit->newState = GAMEMAPEDIT;
   mapEdit->text = "Edit map";
   mapEdit->arrayBound = 0;
   mapEdit->menuEntries = NULL;
 
   mapEdit->parent = parent;
-  
+  mapEdit->action = transitionToMapEdit;
   return mapEdit;
 }
 
-static void mapEditAction() {
-  setActiveMenu(NULL);
-  setGameState(GAMEMAPEDIT);
-  setGameSubState(MOVENORM);
-}
+
 
 static menu* createQuitMenu(menu* parent) {
   menu* quitMenu = createMenu();
   quitMenu->text = "Quit";
-  maintainState(quitMenu, parent);
+  //quitMenu->newState = GAMEQUIT
   quitMenu->arrayBound = 0;
   quitMenu->menuEntries = NULL;
-  quitMenu->action = &quitAction;
+  quitMenu->action = quitAction;
   return quitMenu;
 }
 
 static void quitAction() {
-  setActiveMenu(NULL);
+  // setActiveMenu(NULL);
   setGameState(GAMEQUIT);
 }
 
+
+
 //map edit things
-
-//little excercize on how I'd implement a basic adjustment action
-//whose goal was to manipulate and set a volume slider
-//basically, there'd be some global variable to keep track of a state across function calls
-//idealy set up before the first action call to point to some actual data field
-//basic action is calling a unique input handler and drawCall
-//also, would need gloabal variables total. 1 for temporary storage, other for actual commited change
-//probably going to need to replicate this with ints/floats
-//includes the custome input handler, the new state, the getter funcs
-
-
 
 menu* createMapEditMainMenu() {
   int count = 0;
   menu* new = createMenu();
   new->text = "Edit menu";
-  new->returnState = GAMEMAPEDIT;
-  new->returnSubState = MOVENORM;
-  new->newState = GAMEPAUSE;
-  new->newSubState = MENUNORM;
-  new->arrayBound = 2;
+  //new->returnState = GAMEMAPEDIT;
+  //new->newState = MENU;
+  new->arrayBound = 3;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
-  new->menuEntries[count++] = *createResumeMenu(new);
+  menu* resume =  createMenu(new);
+  resume->action = transitionToMapEdit;
+  resume->text = "resume map editing";
+  resume->parent = new;
+  new->menuEntries[count++] = *resume;
+  resume =  createMenu(new);
+  resume->action = transitionToGameRun;
+  resume->text = "Back to regular game";
+  resume->parent = new;
+  new->menuEntries[count++] = *resume;
   //at least want a menu for each thing to edit
   //want tile, and map size
   new->menuEntries[count++] = *createTileStructEntry(new);
   //new->menuEntries[count++] = something for map dimension
+  new->action = transitionToMapEdit;
   fillMenu(new);
   
   return new;  
@@ -281,14 +224,25 @@ static menu* createTileStructEntry(menu* parent) {
   int count = 0;
   menu* new = createMenu();
   new->text = "Tile Menu";
-  maintainState(new, parent);
+  //maintainState(new, parent);
   new->arrayBound = 3;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
-  new->menuEntries[count++] = *createStringInput(new,"Path to tile background");
-  new->menuEntries[count++] = *createStringInput(new,"tile contents menu (under construction)");
-  new->menuEntries[count++] = *createStringInput(new,"wall status");
+    new->bgColor = &menuBGCol;
+  new->textColor = &menuTextCol;
+  new->menuEntries[count++] = *createTileStructInput(new,STRING_TILE_BG_PATH);
+  new->menuEntries[count++] = *createTileStructInput(new,"tile contents menu (under construction)");
+  new->menuEntries[count++] = *createTileStructInput(new,INT_TILE_WALL);
+    new->bgColor = &menuBGCol;
+  new->textColor = &menuTextCol;
   new->parent = parent;
+  new->action = NULL;
   fillMenu(new);
+  return new;
+}
+
+static menu* createTileStructInput(menu* parent, char* message) {
+  menu* new = createStringInput(parent, message);
+  new->action = setTileStructField;
   return new;
 }
 
@@ -298,25 +252,41 @@ static menu* createStringInput(menu* parent, char* message) {
   //I'm forseeing that I'll be needing to use the char* temp from myInput
   //so atleast need a getter function for that
   menu* new = createMenu();
-  maintainState(new, parent);
-  new->newState = GAMEPAUSE;
-  new->newSubState = MENUTEXTENTRY;
   new->width = 1;
   new->height = 1;
   
-  new->text = message;
   
-  new->action = &textEntryAction;
+  new->text = message;
+  new->bgColor = &inputBGCol;
+  new->textColor = &inputTextCol;
   new->parent = parent;
+  new->action = textEntryAction;
   fillMenu(new);
   
   return new;
 }
 
 static void textEntryAction() {
-  menuInput();
-  drawTextEntry();
+  setGameState(MENUTEXTENTRY);
 }
+
+void drawTextEntry() {
+  //basically, just render some text to center of screen
+  //backgroun would also be nice
+
+
+  SDL_Rect dstRect;
+  char* text = getTempString();
+  menu* currentMenu = getMenu(currentEnv);
+  dstRect.h = currentMenu->entryHeight;
+  dstRect.y = (SCREEN_HEIGHT - dstRect.h) / 2;
+  dstRect.w = strlen(text) * ENTRY_WIDTH;
+  dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
+  SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);
+  drawText(currentMenu->font, text, currentMenu->textColor, &dstRect);
+}
+
+
 
 void fillMenu(menu* theMenu) {
   int height;
@@ -332,12 +302,13 @@ void fillMenu(menu* theMenu) {
   dstRect.x = 0;
   dstRect.y = 0;
   dstRect.h = height;
+  printf("height is %d\n" , height);
   SDL_Surface* textSurf;
   menu* menuEntry;
   for (int i = 0 ; i < theMenu->arrayBound ; i++) {
     menuEntry = &(theMenu->menuEntries[i]);
     dstRect.w = strlen(menuEntry->text) * 0;
-    textSurf = TTF_RenderText_Solid(menuEntry->font, menuEntry->text, *(menuEntry->textColor));
+    textSurf = TTF_RenderText_Solid(menuEntry->font, menuEntry->text, *(theMenu->textColor));
     SDL_BlitSurface(textSurf, NULL, temp, &dstRect);
     SDL_FreeSurface(textSurf);
     dstRect.y += height;
@@ -349,7 +320,7 @@ void fillMenu(menu* theMenu) {
 
 void drawCurrentMenu() {
   SDL_Renderer* rend = getRenderer();
-  menu* theMenu = currentMenu;
+  menu* theMenu = getMenu(currentEnv);
   SDL_Rect dstRect;
   
   dstRect.w = theMenu->width;
@@ -360,35 +331,17 @@ void drawCurrentMenu() {
   SDL_RenderCopy(rend, theMenu->menuImage, NULL, &dstRect);
 
   dstRect.y += theMenu->activeIndex * theMenu->entryHeight;
-  dstRect.w = strlen(theMenu->menuEntries[theMenu->activeIndex].text) * 20;
+  dstRect.w = strlen(theMenu->menuEntries[theMenu->activeIndex].text) * ENTRY_WIDTH;
   dstRect.h = theMenu->entryHeight;
   //draw selected entry box
-  SDL_RenderDrawRect(getRenderer(), &dstRect);  
+  SDL_Color a = *theMenu->textColor;
+  SDL_SetRenderDrawColor(rend, a.r, a.g, a.b, a.a);
+  SDL_RenderDrawRect(rend, &dstRect);  
 }
 
 
-void drawTextEntry() {
-  //basically, just render some text to center of screen
-  //backgroun would also be nice
 
-  /*
-  some colors I wanted
-  bgColor->r = 243;
-  bgColor->g = 221;
-  bgColor->b = 233;
 
-  textColor->r = 11;
-  textColor->g = 7;
-  textColor->b = 9;
-*/
-  SDL_Rect dstRect;
-  char* text = getTempString();
-  dstRect.h = currentMenu->entryHeight;
-  dstRect.y = (SCREEN_HEIGHT - dstRect.h) / 2;
-  dstRect.w = strlen(text) * 20;
-  dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
-  SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);
-  drawText(currentMenu->font, text, currentMenu->textColor, &dstRect);
-}
+
 
 

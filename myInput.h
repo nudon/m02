@@ -21,13 +21,13 @@ char* getTempString();
 
 void setTempString(char* new);
 
-void characterInput(NPC_node_t* node);
+void characterInput(npcNode* node);
 
 void menuInput();
 
-int handleSingleInput(NPC_node_t* npcNode, SDL_Event* e);
+int handleSingleInput(npcNode* npcNode, SDL_Event* e);
 
-int handleMapEditInput(NPC_node_t* npcNode, SDL_Event* e);
+int handleMapEditInput(npcNode* npcNode, SDL_Event* e);
 
 int basicMenuInputHandler(SDL_Event* e);
 
@@ -36,5 +36,10 @@ int handleTextEntry(SDL_Event* e);
 void updateKeys(SDL_Event* e);
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e);
+
+void setStringField(char* fieldArg);
+void setStringTemp(char* tempArg);
+void setIntField(int* intArg);
+void setIntTemp(int tempArg);
 
 #endif

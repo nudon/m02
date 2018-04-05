@@ -25,18 +25,18 @@ struct menu_struct {
   char* text;
   SDL_Color* textColor;
   TTF_Font* font;
-
-  gameState returnState;
-  gameSubState returnSubState;
-
   gameState newState;
-  gameSubState newSubState;
-  //void (*inputHandler) (SDL_Event* e);
-  //think I want this void
+  //used for transitioniong between states/environments
   void (*action) ();
 };
 
 typedef struct menu_struct menu;
+
+extern char* STRING_TILE_BG_PATH;
+extern char* INT_TILE_WALL;
+extern int fieldType;
+extern const int STRING_CHANGE;
+extern const int INT_CHANGE; 
 
 menu* getActiveMenu();
 
@@ -63,5 +63,9 @@ void drawCurrentMenu();
 void drawTextEntry();
 
 void drawText(TTF_Font* font, char* text, SDL_Color* textColor, SDL_Rect* dstRect);
+
+
+
+
 
 #endif
