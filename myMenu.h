@@ -37,7 +37,8 @@ extern char* INT_TILE_WALL;
 extern int fieldType;
 extern const int STRING_CHANGE;
 extern const int INT_CHANGE; 
-
+extern int ENTRY_HEIGHT;
+extern int ENTRY_WIDTH;
 menu* getActiveMenu();
 
 menu* getMainMenu();

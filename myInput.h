@@ -17,10 +17,6 @@ enum keys {
 
 typedef enum keys keyArg;
 
-char* getTempString();
-
-void setTempString(char* new);
-
 void characterInput(npcNode* node);
 
 void menuInput();
@@ -36,6 +32,9 @@ int handleTextEntry(SDL_Event* e);
 void updateKeys(SDL_Event* e);
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e);
+
+char* getTempString();
+
 
 void setStringField(char* fieldArg);
 void setStringTemp(char* tempArg);

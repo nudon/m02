@@ -4,6 +4,7 @@
 #include "myMenu.h"
 #include "systemLimits.h"
 #include "myEnv.h"
+#include "myImage.h"
 
 //array over enumerations of keys found in header
 //stores whether the last associated with the key a keydown or keyup
@@ -16,7 +17,7 @@ const int INT_CHANGE = 2;
 static char* stringField;
 static char stringTemp[ MAXPATHLEN ];
 static int* intField;
-static int* intTemp;
+static int intTemp;
 
 
 static void handleMoveMent(npcNode* npcNode, SDL_Event* e);
@@ -24,15 +25,9 @@ static void commitChanges();
 static void commitStringChanges();
 static void commitIntChanges();
 
-char* getTempString() {
-  return stringTemp;
-}
+static int intLen(int num);
 
-void setTempString(char* new) {
-  memcpy(stringTemp, new, strlen(new));
-}
 
-static void commitStringChanges();
 
 void characterInput(npcNode* node) {
   SDL_Event e;
@@ -125,6 +120,7 @@ int handleSingleInput(npcNode* npcNode, SDL_Event* e) {
   return val;
 }
 
+
 void handleMoveMent(npcNode* npcNode, SDL_Event* e) {
   tilePos* pos =  npcNode->storedNpc->tilePos;
   switch(e->key.keysym.sym) {
@@ -193,22 +189,8 @@ int basicMenuInputHandler(SDL_Event* e) {
 
 int handleMapEditInput(npcNode* npcNode, SDL_Event* e) {
   //basically, just move around normally
-  //pushing t brings up tile edit menu
-  //issue of setting stringField
-  //easier in case of pushing t. since I know which field to goto
-  //just need to write some code for getting the current tile position
-  //actually that's kind of hard
-  //would need debugPosition
-  //then lookup in the map for the actual tile
-  //for storing debug position, could just keep some reference for it.
-  //I'm a moron, I already have it in the node.
-  
-  //accessing things through the menu get awfully terrible though.
-  //I could do some additional trickery to set up a mirror tile struct
-  //just have each menuEntry point to some field in that
-  //in general though that means a copy of dummy copy of every field I want to edit
-  //wheras currently I just have 1 for each type of field I want to edit
-  //pushing m brings up map edit menu, not implemented, but eventually changes map size
+  //want t and m to be shortcuts for editing tile and map
+  //though I broke starting at a non-main-menu
   keyArg activeKey;
   int val = 1;
   switch(e->key.keysym.sym) {
@@ -231,7 +213,6 @@ int handleMapEditInput(npcNode* npcNode, SDL_Event* e) {
      stringField = getTileFromMapCord(getMap(currentEnv), position->x, position->y)->tilePath;
       memcpy(stringTemp, stringField, strlen(stringField));
       transitionToPauseMenu();
-      //fuck, causing a menu reset because of how I'm changing arguements 
       selectMenu("Tile Menu");
     }
     break;
@@ -250,10 +231,6 @@ int handleMapEditInput(npcNode* npcNode, SDL_Event* e) {
 }
 
 int handleTextEntry(SDL_Event* e) {
-  //would be nice to make this also handle integer input
-  //would need to store some internal state based on what type the active field is
-  //or make the field/temp thing a discriminated union,
-
   //also, I'd like some functionality for remembering the most recently typed fields
   //so I don't need to type so much
   //that or implement some type of clone features
@@ -282,21 +259,91 @@ int handleTextEntry(SDL_Event* e) {
 	setGameState(MENU);
       }
       break;
-      //think I also need some handling for backspaces, copying, and pasting
-    case SDLK_BACKSPACE:
-      val = strlen(stringTemp);
-      if (val != 0) {
-	stringTemp[val - 1] = '\0';
+      //would be nice to handle copying, and pasting
+    case SDLK_BACKSPACE:;
+      int len;
+      if (fieldType == STRING_CHANGE) {
+	len = strlen(stringTemp);
+	if (len != 0) {
+	  stringTemp[len - 1] = '\0';
+	}
       }
+      else if (fieldType == INT_CHANGE) {
+	len = intLen(intTemp);
+	if (len == 1) {
+	  intTemp = 0;
+	}
+	else {
+	  intTemp = intTemp / 10;
+	}
+      }
+
+
     default:
       val = -1;
       break;
     }
   }
+  //not actually working currenctly
+  else if (SDL_GetModState() & KMOD_CTRL) {
+    if (e->key.keysym.sym == SDLK_v) {
+      SDL_SetClipboardText(stringTemp);
+    }
+    else if (e->key.keysym.sym == SDLK_c) {
+      memcpy(stringTemp, SDL_GetClipboardText(), MAXPATHLEN);
+    }
+  }
   else if (e->type == SDL_TEXTINPUT) {
+    //will want to descriminate here based on type of entry,
+    if (fieldType == STRING_CHANGE) {
     memcpy(&(stringTemp[strlen(stringTemp)]), e->text.text, strlen(e->text.text));
+    }
+    else if (fieldType == INT_CHANGE) {
+      //surely the user would never give a bad number...
+      int new = atoi(e->text.text);
+      int len = intLen(new);
+      for (int i = 0; i < len; i++) {
+	intTemp *= 10;
+      }
+      intTemp += new;
+    }
   }
   return val;
+}
+
+void drawTextEntry() {
+  //basically, just render some text to center of screen
+  //backgroun would also be nice
+  
+
+  SDL_Rect dstRect;
+  menu* currentMenu = getMenu(currentEnv);
+  int len;
+  dstRect.h = currentMenu->entryHeight;
+  dstRect.y = (SCREEN_HEIGHT - dstRect.h) / 2;
+
+  if (fieldType == STRING_CHANGE) {
+    char* text = getTempString();
+    len = strlen(text);
+    dstRect.w = len * ENTRY_WIDTH;
+    dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
+    SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);
+    drawText(currentMenu->font, text, currentMenu->textColor, &dstRect);    
+  }
+  else if (fieldType == INT_CHANGE) {
+    int number = intTemp;;
+    len = intLen(number);
+    dstRect.w = len * ENTRY_WIDTH;
+    dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
+    SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);
+    drawNumber(currentMenu->font, number, currentMenu->textColor, &dstRect);    
+  }
+  else {
+    fprintf(stderr, "attempting to drawTextEntry with wonky fieldType\n");
+  }
+
+
+ 
 }
 
 void updateKeys(SDL_Event* e) {
@@ -358,7 +405,7 @@ void commitStringChanges() {
 }
 
 void commitIntChanges() {
-  *intField = *intTemp;
+  *intField = intTemp;
   
 }
 
@@ -395,7 +442,7 @@ void tileFieldEdit(tile* tile, char* menuText) {
   }
   else if (!strcmp(menuText, "wall status")) {
     intField = &(tile->isWall);
-    intTemp = intField;
+    intTemp = *intField;
   }
 }
 
@@ -407,11 +454,11 @@ void mapFieldEdit(map* map, char* menuText) {
   //mabBG
   if (!strcmp(menuText, "rows")) {
     intField = &(map->rows);
-    intTemp = intField;
+    intTemp = *intField;
   }
   else if (!strcmp(menuText, "cols")) {
     intField = &(map->cols);
-    intTemp = intField;
+    intTemp = *intField;
   }
   else if (!strcmp(menuText, "tiles")) {
     //?
@@ -425,7 +472,6 @@ void mapFieldEdit(map* map, char* menuText) {
   }
 }
 
-
 void setStringField(char* fieldArg) {
   stringField = fieldArg;
 }
@@ -437,5 +483,28 @@ void setIntField(int* intArg) {
   intField = intArg;
 }
 void setIntTemp(int tempArg){
-  *intTemp = tempArg;
+  intTemp = tempArg;
+}
+
+
+char* getTempString() {
+  return stringTemp;
+}
+
+void setTempString(char* new) {
+  memcpy(stringTemp, new, strlen(new));
+}
+
+static void commitStringChanges();
+
+
+int intLen(int num) {
+  //assuming I'm printing in base 10
+  int len = 1;
+  int div = 10;
+  while (num / div != 0) {
+    len++;
+    div *= 10;
+  }
+  return len;
 }

@@ -17,6 +17,10 @@ SDL_Texture* loadTexture(char* path);
 
 void drawText(TTF_Font* font, char* text, SDL_Color* textColor, SDL_Rect* dstRect);
 
+void drawNumber(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstRect);
+
+SDL_Texture* drawNumberToTexture(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstRect);
+
 SDL_Texture* drawTextToTexture(TTF_Font* font, char* text, SDL_Color* textColor);
 
 SDL_Renderer* getRenderer();

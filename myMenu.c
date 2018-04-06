@@ -10,9 +10,11 @@
 
 //have a spartan menu system now. Would like to eventually change it to allow submenues to sometimes  be displayed in full
 
+//so, menus. important bit about transitions, the main menu should have an appropriate transitionTo____ as it's action. 
+
 //basically individual character dimensions
-static int ENTRY_HEIGHT= 12 ;
-static int ENTRY_WIDTH = 8;
+int ENTRY_HEIGHT= 12 ;
+int ENTRY_WIDTH = 8;
 static SDL_Color menuTextCol = {.r = 235, .g = 241, .b = 190, .a = 0};
 static SDL_Color menuBGCol = {.r = 17, .g = 23, .b = 18, .a = 0};
 static SDL_Color inputBGCol = {.r = 243, .g = 221, .b = 233, .a = 0};
@@ -269,23 +271,6 @@ static menu* createStringInput(menu* parent, char* message) {
 static void textEntryAction() {
   setGameState(MENUTEXTENTRY);
 }
-
-void drawTextEntry() {
-  //basically, just render some text to center of screen
-  //backgroun would also be nice
-
-
-  SDL_Rect dstRect;
-  char* text = getTempString();
-  menu* currentMenu = getMenu(currentEnv);
-  dstRect.h = currentMenu->entryHeight;
-  dstRect.y = (SCREEN_HEIGHT - dstRect.h) / 2;
-  dstRect.w = strlen(text) * ENTRY_WIDTH;
-  dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
-  SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);
-  drawText(currentMenu->font, text, currentMenu->textColor, &dstRect);
-}
-
 
 
 void fillMenu(menu* theMenu) {

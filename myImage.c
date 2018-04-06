@@ -65,6 +65,20 @@ SDL_Texture* drawTextToTexture(TTF_Font* font, char* text, SDL_Color* textColor)
   return textText;
 }
 
+void drawNumber(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstRect) {
+  int len = sizeof(int) * 8;
+  char text[len];
+  snprintf(text, len, "%d", number);
+  drawText(font, text, textColor, dstRect);
+}
+
+SDL_Texture* drawNumberToTexture(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstRect) {
+  int len = sizeof(int) * 8;
+  char text[len];
+  sprintf(text, len, "%d", number);
+  return drawTextToTexture(font, text, textColor);
+}
+
 SDL_Surface* createSurfaceFromDim(int w, int h) {
   //I stole this from https://wiki.libsdl.org/SDL_CreateRGBSurface
   SDL_Surface* surface;
