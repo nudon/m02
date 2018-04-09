@@ -13,8 +13,8 @@
 //so, menus. important bit about transitions, the main menu should have an appropriate transitionTo____ as it's action. 
 
 //basically individual character dimensions
-int ENTRY_HEIGHT= 12 ;
-int ENTRY_WIDTH = 8;
+int ENTRY_HEIGHT= 20 ;
+int ENTRY_WIDTH = 14;
 static SDL_Color menuTextCol = {.r = 235, .g = 241, .b = 190, .a = 0};
 static SDL_Color menuBGCol = {.r = 17, .g = 23, .b = 18, .a = 0};
 static SDL_Color inputBGCol = {.r = 243, .g = 221, .b = 233, .a = 0};
@@ -26,9 +26,11 @@ static menu* createMapEditMenu(menu* parent);
 static menu* createQuitMenu(menu* parent);
 static menu* createMenu();
 static menu* createTileStructInput(menu* parent, char* message);
+static menu* createMapStructInput(menu* parent, char* message);
 static menu* createStringInput(menu* parent, char* message);
 static menu* createMenuOpt(int w, int h, char* msg);
 static menu* createTileStructEntry(menu* parent);
+static menu* createMapStructEntry(menu* parent);
 static void setFont(TTF_Font* font, char* fontPath);
 static void quitAction();
 static void textEntryAction();
@@ -43,8 +45,12 @@ static void freeMenuSub(menu* aMenu);
 
 //static menu* mapEditMenu;
 
+char* TILE_EDIT_MENU = "Edit Tile";
+char* MAP_EDIT_MENU = "Edit Map";
 char* STRING_TILE_BG_PATH = "Path to BG";
 char* INT_TILE_WALL = "Wall status";
+char* INT_MAP_ROWS = "Rows";
+char* INT_MAP_COLS = "Cols";
 
 static TTF_Font* globalFont = NULL;
 
@@ -201,7 +207,7 @@ menu* createMapEditMainMenu() {
   new->text = "Edit menu";
   //new->returnState = GAMEMAPEDIT;
   //new->newState = MENU;
-  new->arrayBound = 3;
+  new->arrayBound = 4;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
   menu* resume =  createMenu(new);
   resume->action = transitionToMapEdit;
@@ -216,6 +222,7 @@ menu* createMapEditMainMenu() {
   //at least want a menu for each thing to edit
   //want tile, and map size
   new->menuEntries[count++] = *createTileStructEntry(new);
+  new->menuEntries[count++] = *createMapStructEntry(new);
   //new->menuEntries[count++] = something for map dimension
   new->action = transitionToMapEdit;
   fillMenu(new);
@@ -225,7 +232,7 @@ menu* createMapEditMainMenu() {
 static menu* createTileStructEntry(menu* parent) {
   int count = 0;
   menu* new = createMenu();
-  new->text = "Tile Menu";
+  new->text = TILE_EDIT_MENU;
   //maintainState(new, parent);
   new->arrayBound = 3;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
@@ -234,7 +241,23 @@ static menu* createTileStructEntry(menu* parent) {
   new->menuEntries[count++] = *createTileStructInput(new,STRING_TILE_BG_PATH);
   new->menuEntries[count++] = *createTileStructInput(new,"tile contents menu (under construction)");
   new->menuEntries[count++] = *createTileStructInput(new,INT_TILE_WALL);
-    new->bgColor = &menuBGCol;
+  new->bgColor = &menuBGCol;
+  new->textColor = &menuTextCol;
+  new->parent = parent;
+  new->action = NULL;
+  fillMenu(new);
+  return new;
+}
+
+static menu* createMapStructEntry(menu* parent) {
+  int count = 0;
+  menu* new = createMenu();
+  new->text = MAP_EDIT_MENU;
+  new->arrayBound = 2;
+  new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
+  new->menuEntries[count++] = *createMapStructInput(new, INT_MAP_ROWS);
+  new->menuEntries[count++] = *createMapStructInput(new, INT_MAP_COLS);    
+  new->bgColor = &menuBGCol;
   new->textColor = &menuTextCol;
   new->parent = parent;
   new->action = NULL;
@@ -248,11 +271,13 @@ static menu* createTileStructInput(menu* parent, char* message) {
   return new;
 }
 
+static menu* createMapStructInput(menu* parent, char* message) {
+  menu* new = createStringInput(parent, message);
+  new->action = setMapStructField;
+  return new;
+}
+
 static menu* createStringInput(menu* parent, char* message) {
-  //think I'll want the action to be something to get input
-  //then draw the current text input
-  //I'm forseeing that I'll be needing to use the char* temp from myInput
-  //so atleast need a getter function for that
   menu* new = createMenu();
   new->width = 1;
   new->height = 1;

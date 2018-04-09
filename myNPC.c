@@ -128,10 +128,10 @@ void positionShift(npcNode* npcNode, int* shiftPos, int shiftAmount) {
 }
 
 int validPos(tilePos* tile) {
-  if(tile->x < 0 || tile->x >= getMap(currentEnv)->cols) {
+  if(tile->x < 0 || tile->x >= getMap(currentEnv)->tileMap->cols) {
     return 0;
   }
-  else if(tile->y < 0 || tile->y >= getMap(currentEnv)->rows) {
+  else if(tile->y < 0 || tile->y >= getMap(currentEnv)->tileMap->rows) {
     return 0;
   }
   else if(isAWall(getTileFromMapPos(getMap(currentEnv),tile))) {
@@ -167,8 +167,8 @@ void drawNpc(npc* npc) {
   SDL_Rect srcRect, destRect;
   SDL_Renderer* rend = getRenderer();
   pixPos* cameraPos = getCameraPos();
-  destRect.x = npc->pixelPos->x + getDrawScreen()->x;
-  destRect.y = npc->pixelPos->y + getDrawScreen()->y;
+  destRect.x = npc->pixelPos->x + getDrawScreen()->x - getDrawMap()->x;
+  destRect.y = npc->pixelPos->y + getDrawScreen()->y - getDrawMap()->y;
   destRect.w = TILED;
   destRect.h = TILED;
   if (destRect.x + TILED < cameraPos->x - (SCREEN_WIDTH / 2) ||
@@ -249,7 +249,7 @@ void loadSpriteMC(spriteHolder* holder) {
   holder->sprite_height = 32;
   holder->rows = 1;
   holder->cols = 1;
-  holder->sprite_sheet = loadTexture("/home/nudon/prg/gam/media/sp/def.png");
+  holder->sprite_sheet = loadTexture("/sp/def.png");
 }
 
 void makeDebug(npc* slate) {

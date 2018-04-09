@@ -2,14 +2,19 @@
 #include "myImage.h"
 #include <math.h>
 #include "myMenu.h"
+#include "systemLimits.h"
 
 static SDL_Renderer* rend;
 
+//thinking about just prepending a dir to media folder
+//having path/path fields just be within media. 
 SDL_Surface* loadToSurface(char* path) {
-  SDL_Surface* surface = IMG_Load(path);
+  char temp[MAXPATHLEN];
+  copyWithMediaPrefix(temp, path);
+  SDL_Surface* surface = IMG_Load(temp);
   if (surface == NULL) {
     fprintf(stderr, "Error in loading picture %s to surface: %s \n",
-	    path, 
+	    temp, 
 	    SDL_GetError());
   }
   return surface;  
@@ -75,7 +80,7 @@ void drawNumber(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstR
 SDL_Texture* drawNumberToTexture(TTF_Font* font, int number, SDL_Color* textColor, SDL_Rect* dstRect) {
   int len = sizeof(int) * 8;
   char text[len];
-  sprintf(text, len, "%d", number);
+  snprintf(text, len, "%d", number);
   return drawTextToTexture(font, text, textColor);
 }
 

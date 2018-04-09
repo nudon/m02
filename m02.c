@@ -2,11 +2,12 @@
 #include <pthread.h>
 #include "myImage.h"
 #include "myMap.h"
-#include "myNPC.h"
+//#include "myNPC.h"
 #include "gameState.h"
 #include "myInput.h"
 #include "myMenu.h"
 #include "myEnv.h"
+#include "systemLimits.h"
 
 //prototypes 
 static int init();
@@ -27,8 +28,7 @@ static SDL_Window* gWin = NULL;
 static int updateWait = 15;
 
 //extern inits
-int SCREEN_WIDTH = 480;
-int SCREEN_HEIGHT = 360;
+
 
 const int SLEEP_TIME_MS = 25;
   
@@ -102,7 +102,7 @@ static int startDebug() {
   int fail = 0;
   setMap(currentEnv, debugMap());
   if (getMap(currentEnv) != NULL) {
-    setMapBG(currentEnv, cinterTiles(getMap(currentEnv)));
+    setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
     if (getMapBG(currentEnv) != NULL) {
       startDebugPopulate();
     }
@@ -175,15 +175,23 @@ int init() {
 }
 
 int loadMedia() {
-  //I guess in future, load/set up any sprite sheet stuff
+  if (setMediaDir() == 0) {
+    //I guess in future, load/set up any sprite sheet stuff
+  }
+  else {
+    fprintf(stderr, "unable to set directory to media\n");
+  }
+
   return 0;
 }
 
 void myClose() {
-  //will have to change this to close things in every environ
-  freeMap(getMap(currentEnv));
+  //getting rid of most of my free calls, since crashing on double freeing is unsightly
+  
+  //freeMap(getMap(currentEnv));
+  //freeEnvirons();
+
   freeRenderer();
-  freeEnvirons();
   SDL_DestroyWindow(gWin);
   gWin = NULL;
   TTF_Quit();

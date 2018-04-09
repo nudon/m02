@@ -2,6 +2,7 @@
 #define FILE_MYINPUT_SEEN
 
 #include "myNPC.h"
+#include "myMap.h"
 
 enum keys {
   KEY_t,
@@ -28,8 +29,10 @@ int handleMapEditInput(npcNode* npcNode, SDL_Event* e);
 int basicMenuInputHandler(SDL_Event* e);
 
 int handleTextEntry(SDL_Event* e);
-  
+
 void updateKeys(SDL_Event* e);
+
+void updateMap(map* theMap);
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e);
 

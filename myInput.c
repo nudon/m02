@@ -1,5 +1,4 @@
 #include "myInput.h"
-#include "myMap.h"
 #include "gameState.h"
 #include "myMenu.h"
 #include "systemLimits.h"
@@ -11,6 +10,9 @@
 static uint32_t keyStates[KEY_LAST];
 
 //used for field input
+int changeType;
+const int MAP_DIM_CHANGE;
+const int MAP_TILE_CHANGE;
 int fieldType;
 const int STRING_CHANGE = 1;
 const int INT_CHANGE = 2;
@@ -286,6 +288,7 @@ int handleTextEntry(SDL_Event* e) {
   }
   //not actually working currenctly
   else if (SDL_GetModState() & KMOD_CTRL) {
+    val = 1;
     if (e->key.keysym.sym == SDLK_v) {
       SDL_SetClipboardText(stringTemp);
     }
@@ -296,10 +299,13 @@ int handleTextEntry(SDL_Event* e) {
   else if (e->type == SDL_TEXTINPUT) {
     //will want to descriminate here based on type of entry,
     if (fieldType == STRING_CHANGE) {
-    memcpy(&(stringTemp[strlen(stringTemp)]), e->text.text, strlen(e->text.text));
+      val = 1;
+      memcpy(&(stringTemp[strlen(stringTemp)]), e->text.text, strlen(e->text.text));
     }
     else if (fieldType == INT_CHANGE) {
+      val = 1;
       //surely the user would never give a bad number...
+      fprintf(stderr, "(%s)\n", e->text.text);
       int new = atoi(e->text.text);
       int len = intLen(new);
       for (int i = 0; i < len; i++) {
@@ -381,14 +387,34 @@ void updateKeys(SDL_Event* e) {
     checkAndUpdateKey(key, e);
   }
 }
+
+
 void commitChanges() {
-  if (fieldType == STRING_CHANGE) {
+  if (getMenu(currentEnv)->parent->text == MAP_EDIT_MENU) {
+    fprintf(stderr, "updating map\n");
+    updateMapEditMap();
+  }
+  else if (getMenu(currentEnv)->parent->text == TILE_EDIT_MENU) {
+    fprintf(stderr, "re cintering tiles\n");
+    commitStringChanges();
+    SDL_DestroyTexture(getMapBG(currentEnv));
+    setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+  }
+  else if (fieldType == STRING_CHANGE) {
     commitStringChanges();
   }
   else if (fieldType == INT_CHANGE) {
     commitIntChanges();
   }
+
 }
+
+
+
+    
+  //probably want to do something else, like check which menu/struct i was changing
+  //so if menu was the map or tiles, recinter the map or whatnot
+  //don't want to always reload everything. ideall commitStringChange just updates the string value, doesn't call anyything else
 void commitStringChanges() {
   //for now, just going to overwrites stringField with stringTemp;
 
@@ -398,15 +424,34 @@ void commitStringChanges() {
   //check which menu string I changed, and redo stuff bassed on that
   //well, have a thing where I specifically call tileStruct
   //could just mirror however I do that, for
-  fprintf(stderr, "re cintering tiles\n");
-  SDL_DestroyTexture(getMapBG(currentEnv));
-  setMapBG(currentEnv, cinterTiles(getMap(currentEnv)));
+  
+
 
 }
 
 void commitIntChanges() {
   *intField = intTemp;
-  
+ }
+
+void updateMap(map* theMap) {
+  //have to do some trickery for old map to get coppied to new map
+  //essentially need the old dimensions to know bounds of old tiles*, and the new dim to resize to
+  //commiting string whipes out 1 old dim, which is a problem
+  int oldRows, newRows, oldCols, newCols;
+  oldCols = getMapDimX(theMap);
+  oldRows = getMapDimY(theMap);
+  commitIntChanges();
+  if (getMapDimX(theMap) != oldRows || getMapDimY(theMap) != oldCols) {
+    newCols = getMapDimX(theMap);
+    newRows = getMapDimY(theMap);
+    setMapDimX(theMap, oldCols);
+    setMapDimY(theMap, oldRows);    
+    changeMapDim(theMap, newRows, newCols);
+    setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+  }
+  else {
+    fprintf(stderr, "Didn't actually change the dim of map, odd things might happen\n");
+  } 
 }
 
 int checkAndUpdateKey(keyArg key, SDL_Event* e) {
@@ -419,19 +464,6 @@ int checkAndUpdateKey(keyArg key, SDL_Event* e) {
   return val;
 }
 
-//so, having a hard time thinking about field selection.
-//right now, just hardcoded the only string I'm processing, the tile path. Want to moddify each individual field.
-//have an idea for an annoying solution. basically copy menuInput function, but include code particular to tile_struct
-//particularly, on pushing return, look at what the active index is, look at the menu entries text, based on that correctly set the stringfield/stringTemp to the appropriate tile field.
-
-//only issue is the whole copying menu input. gets annoying if I'm adding features to that and I have to copy it to all the different variations of the menu.
-
-//might specify soom other variable/state, which would indicate a specific struct entry. in handling return, check if state is special, if it is, call some generic function to select a specific function for a struct that gets things setup.
-
-
-//would also be nice to have string constants for path
-//would be in some header shared with this and menus
-//would also mean I could just compare addresses
 void tileFieldEdit(tile* tile, char* menuText) {
   if (!strcmp(menuText, "Path to BG")) {
     stringField = tile->tilePath;
@@ -446,39 +478,13 @@ void tileFieldEdit(tile* tile, char* menuText) {
   }
 }
 
-void mapFieldEdit(map* map, char* menuText) {
-  //field of map
-  //rows, cols,
-  //tile[][]
-  //npc move list
-  //mabBG
-  if (!strcmp(menuText, "rows")) {
-    intField = &(map->rows);
-    intTemp = *intField;
-  }
-  else if (!strcmp(menuText, "cols")) {
-    intField = &(map->cols);
-    intTemp = *intField;
-  }
-  else if (!strcmp(menuText, "tiles")) {
-    //?
-  }
-  else if (!strcmp(menuText, "npcs")) {
-    //?
-  }
-  else if (!strcmp(menuText, "background")) {
-    //? probably not going to have this
-    //no, i'm not
-  }
-}
-
 void setStringField(char* fieldArg) {
   stringField = fieldArg;
 }
 void setStringTemp(char* tempArg) {
   memcpy(stringTemp, tempArg, strlen(tempArg));
 }
-//might actually have intTemp be a string, and just do string<>int conversions
+
 void setIntField(int* intArg) {
   intField = intArg;
 }

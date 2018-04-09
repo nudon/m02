@@ -32,8 +32,12 @@ struct menu_struct {
 
 typedef struct menu_struct menu;
 
+extern char* TILE_EDIT_MENU;
+extern char* MAP_EDIT_MENU;
 extern char* STRING_TILE_BG_PATH;
 extern char* INT_TILE_WALL;
+extern char* INT_MAP_ROWS;
+extern char* INT_MAP_COLS;
 extern int fieldType;
 extern const int STRING_CHANGE;
 extern const int INT_CHANGE; 

@@ -28,6 +28,11 @@ struct {
   int rows;
   int cols;
   tile*** tiles;
+}tileMap;
+
+typedef
+struct {
+  tileMap* tileMap;
   //npcSet* allNpcs;
   SDL_Texture* mapBG;
   //propigating name changes will be fun
@@ -41,17 +46,25 @@ void setCameraPos(pixPos* new);
 tile* createTile(int x, int y);
 
 void freeTile(tile* tile);
-
+void freeTileMap(tileMap* tMap);
 void freeMap(map* map);
 
 map* debugMap();
-tile*** debugTilesInit();
+tileMap* debugTilesInit();
+tileMap* initTiles(int rows, int cols);
+tileMap* changeMapDim(map* map, int newRows, int newCols);
 void startDebugPopulate();
 void setDrawnMap( map * map, pixPos* currentPos);
-tile** readMap(char* mapPath);
-SDL_Texture* cinterTiles(map* tiles);
+SDL_Texture* cinterTiles(tileMap* tiles);
 tile* getTileFromMapPos(map* map, tilePos* pos);
 tile* getTileFromMapCord(map* map, int y, int x);
+tile* getTileFromTileMapPos(tileMap* tiles, tilePos* pos);
+tile* getTileFromTileMapCord(tileMap* tiles, int x, int y);
 int isAWall(tile* tile);
+int getMapDimX(map* theMap);
+int getMapDimY(map* theMap);
+void setMapDimX(map* theMap, int newX);
+void setMapDimY(map* theMap, int newY);
+void cloneTile(tile* clone, tile* orig);
 
 #endif 
