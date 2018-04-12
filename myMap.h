@@ -2,8 +2,8 @@
 #define FILE_MYMAP_SEEN
 
 #include <SDL2/SDL_image.h>
-#include "temp.h"
-#include "myNPC.h"
+//#include "temp.h"
+//#include "myNPC.h"
 
 
 
@@ -12,6 +12,17 @@ struct {
   char* itemPath;
 } item;
 
+typedef
+struct {
+  int x;
+  int y;
+} tilePos;
+
+typedef
+struct {
+  int x;
+  int y;
+} pixPos;
 
 //thinking I'll do a similar thing to how I handled npcs
 //declare some uint8, have it store flags for properties of wall
@@ -38,6 +49,11 @@ struct {
   //propigating name changes will be fun
 } map;
 
+
+
+
+tilePos* createTilePos(int x, int y);
+void freeTilePos(tilePos* tilePos);
 
 SDL_Rect* getDrawMap();
 SDL_Rect* getDrawScreen();

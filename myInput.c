@@ -305,7 +305,6 @@ int handleTextEntry(SDL_Event* e) {
     else if (fieldType == INT_CHANGE) {
       val = 1;
       //surely the user would never give a bad number...
-      fprintf(stderr, "(%s)\n", e->text.text);
       int new = atoi(e->text.text);
       int len = intLen(new);
       for (int i = 0; i < len; i++) {
@@ -390,15 +389,22 @@ void updateKeys(SDL_Event* e) {
 
 
 void commitChanges() {
-  if (getMenu(currentEnv)->parent->text == MAP_EDIT_MENU) {
+  menu* theMenu = getMenu(currentEnv);
+  if (theMenu->parent->text == MAP_EDIT_MENU) {
     fprintf(stderr, "updating map\n");
     updateMapEditMap();
   }
-  else if (getMenu(currentEnv)->parent->text == TILE_EDIT_MENU) {
-    fprintf(stderr, "re cintering tiles\n");
-    commitStringChanges();
-    SDL_DestroyTexture(getMapBG(currentEnv));
-    setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+  else if (theMenu->parent->text == TILE_EDIT_MENU) {
+    //think I'll also have to branch off of current menu things
+    if (theMenu->text == STRING_TILE_BG_PATH) {
+      fprintf(stderr, "re cintering tiles\n");
+      commitStringChanges();
+      SDL_DestroyTexture(getMapBG(currentEnv));
+      setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+    }
+    else if (theMenu->text == INT_TILE_WALL) {
+      commitIntChanges();
+    }
   }
   else if (fieldType == STRING_CHANGE) {
     commitStringChanges();

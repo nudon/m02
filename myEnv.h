@@ -3,7 +3,7 @@
 
 #include <SDL2/SDL_image.h>
 #include "gameState.h"
-#include "temp.h"
+//#include "temp.h"
 #include "myNPC.h"
 #include "myMap.h"
 #include "myMenu.h"

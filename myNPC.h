@@ -2,7 +2,8 @@
 #define FILE_MYNPC_SEEN
 
 #include <SDL2/SDL_image.h>
-#include "temp.h"
+#include "myMap.h"
+//#include "temp.h"
 
 
 //structs
@@ -26,12 +27,6 @@ struct {
   int spriteRow;
   int spriteCol;  
 } animateState;
-
-typedef
-struct {
-  int x;
-  int y;
-} pixPos;
 
 typedef
 struct {
@@ -140,5 +135,9 @@ int validPos(tilePos* tile);
 void positionShift(npcNode* npcNode, int* shiftPos, int shiftAmount);
 
 void updateNpcPos(npc* npc);
+
+SDL_Rect* setDestrectForDrawingSomethingFromTilePos(SDL_Rect* dest, tilePos* tPos);
+
+SDL_Rect* setDestrectForDrawingSomethingFromPixelPos(SDL_Rect* dest, pixPos* pPos);
 
 #endif

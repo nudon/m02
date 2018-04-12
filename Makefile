@@ -5,7 +5,7 @@ OBJO = m$(MYNUM).o
 CC = gcc
 
 #Linkied objects
-LO = myImage.o myMap.o myNPC.o temp.o myInput.o myList.o myMenu.o gameState.o systemLimits.o myEnv.o
+LO = myImage.o myMap.o myNPC.o myInput.o myList.o myMenu.o gameState.o systemLimits.o myEnv.o
 
 ALLOBJO = $(OBJO) $(LO)
 

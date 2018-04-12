@@ -182,3 +182,22 @@ void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers) {
     fprintf(stderr, "FunRect passed negative or zero layers \n");
   }
 }
+void drawWallIndication(SDL_Rect* dest) {
+  SDL_Renderer* rend = getRenderer();
+  SDL_SetRenderDrawColor(rend, 255, 0, 0, 0);
+  SDL_RenderDrawRect(rend,dest);
+  int pOff;
+  int numLines = 3;
+  for (int p = 0; p <= numLines; p++) {
+    pOff = TILED * p / numLines;
+    //c1 (x, y + h - poff
+    //c2,(x + poff, y 
+    SDL_RenderDrawLine(rend, dest->x, dest->y + dest->h - pOff,
+		       dest->x + pOff, dest->y + dest->h);
+  }
+  for (int p = 0; p <= numLines; p++) {
+    pOff = TILED * p / numLines;
+    SDL_RenderDrawLine(rend, dest->x + pOff, dest->y,
+		       dest->x + dest->w, dest->y + dest->h - pOff);
+  }
+}

@@ -20,7 +20,9 @@
 //maybe camera position isn't used like I think it is?
 //yeah, made it just a constant thing. didn't seem to affect much
 //looking at drawNpc then
-//solution was in setDrawnMap, had to add the constant to the drawnMap cords 
+//solution was in setDrawnMap, had to add the constant to the drawnMap cords
+//generally seems like cameraPosition is mainly used for determining what to not draw, instead of where to draw
+
 static SDL_Rect drawnMap, drawnScreen;
 static pixPos* cameraPos;
 static int min(int f, int s);
@@ -171,6 +173,17 @@ tile * createTile(int x, int y) {
   return theTile;
 }
 
+
+tilePos* createTilePos(int x, int y) {
+  tilePos* tile = malloc(sizeof(tilePos));
+  tile->x = x;
+  tile->y = y;
+  return tile;
+}
+
+void freeTilePos(tilePos* tilePos) {
+  free(tilePos);
+}
 
 void freeTile(tile* tile) {
   if (tile != NULL) {

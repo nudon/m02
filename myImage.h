@@ -40,6 +40,7 @@ void myDrawCirc(int x, int y, int rad);
 double mSq(double b);
 
 void myDrawFunRect(int x1 , int y1, int x2, int y2, int layers);
+void drawWallIndication(SDL_Rect* dest);
 
 
 #endif

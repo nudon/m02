@@ -27,6 +27,41 @@ struct environ_ {
 
 environ  *gameRun, *pauseMenu, *mapEdit, *gameQuit, *transferEnv;
 
+int*** walls = NULL;
+
+void setWalls(tileMap* map) {
+  int rows = map->rows;
+  int cols = map->cols;
+  walls = (int***) malloc(sizeof(int*) * rows * cols);
+  for (int colIndex = 0; colIndex < cols; colIndex++) {
+    walls[colIndex] = (int**) malloc(sizeof(int*) * cols);
+    for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+      walls[colIndex][rowIndex] = &(getTileFromTileMapCord(getTileMap(mapEdit), colIndex, rowIndex))->isWall;
+    }
+  }
+}
+
+void wallShade() {
+  tileMap* tiles = getTileMap(mapEdit);
+  SDL_Rect dest;
+  if (tiles->rows * tiles->cols >= 0) {
+    for (int i = 0; i < tiles->rows; i++) {
+      for (int j = 0; j < tiles->cols; j++) {
+	//instead of loading texture, load some custom graphic or draw one
+	tile* tile = getTileFromTileMapCord(tiles, j, i);
+	if (isAWall(tile)) {
+	  if (setDestrectForDrawingSomethingFromTilePos(&dest, tile->tilePosition) != NULL) {
+	    drawWallIndication(&dest);
+	  }
+	}
+      }
+    }  
+  }
+  else {
+    fprintf(stderr, "Tile had one or more demension equal to zero\n");
+  }
+}
+
 void setupEnvirons() {
   //each setup. probably just assign the actions and menu
   gameRun = createEnviron();
@@ -143,11 +178,18 @@ void transitionToMapEdit() {
 void transferToMapEdit() {
   //basically, just have mapEdit point to gameRun map
   //maybe also have map edit where controlled character is?
+  //thinking about having a way to visually indicate which things are walls
+  //idea was I'd have some parallell map that would be transparent
+  //and fill in some cross-stich for walls where appropriate
+  //also had some other ideas that seemed to use a similar idea of parallell array
+  //also wanted to find an efficient way of composing and drawing all of these thing
+  //like, should I clober things together into a megatexture/surface first, then render? and on which level is the megatexture, 1 per parrallell map, or 1 for every parallell map flattened
+  //probably just going to have to run some tests on which is faster
   setGameState(GAMEMAPEDIT);
   mapEdit->map = currentEnv->map;
   npc* mc = getControlledNpc(currentEnv);
   npcNode* debug = getControlledNpcNode(mapEdit);
-
+  allignPixPosToTilePos(debug->storedNpc->pixelPos, debug->storedNpc->tilePos);
   setTilePos(debug->dest, debug->storedNpc->tilePos);
   currentEnv = mapEdit;
 }
@@ -158,6 +200,7 @@ static void mapEditAction() {
   pickDestLoop(currentEnv->npcSet);
   moveDestLoop(currentEnv->npcSet);
   SDL_RenderCopy(getRenderer(), getMapBG(currentEnv), getDrawMap(), getDrawScreen());
+  wallShade();
   drawAllNpcs(currentEnv->npcSet);
   transferIfNeeded();
 }

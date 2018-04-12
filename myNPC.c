@@ -162,22 +162,35 @@ void drawNpcList(npcList* list) {
     current = current->next;
   }
 }
+SDL_Rect* setDestrectForDrawingSomethingFromTilePos(SDL_Rect* dest, tilePos* tPos) {
+  pixPos new;
+  new.x = tPos->x * TILED;
+  new.y = tPos->y * TILED;
+  return setDestrectForDrawingSomethingFromPixelPos(dest, &new);
+}
+
+  SDL_Rect* setDestrectForDrawingSomethingFromPixelPos(SDL_Rect* dest, pixPos* pPos) {
+  pixPos* cameraPos = getCameraPos();
+  dest->x = pPos->x + getDrawScreen()->x - getDrawMap()->x;
+  dest->y = pPos->y + getDrawScreen()->y - getDrawMap()->y;
+  dest->w = TILED;
+  dest->h = TILED;
+  if (dest->x + TILED < cameraPos->x - (SCREEN_WIDTH / 2) ||
+      dest->x - TILED > cameraPos->x + (SCREEN_WIDTH / 2)) {
+    dest = NULL;
+  }
+  else if (dest->y + TILED < cameraPos->y - (SCREEN_HEIGHT / 2) ||
+	   dest->y - TILED > cameraPos->y + (SCREEN_HEIGHT / 2)) {
+    dest = NULL;
+  }
+  return dest;
+}
 
 void drawNpc(npc* npc) {
   SDL_Rect srcRect, destRect;
   SDL_Renderer* rend = getRenderer();
   pixPos* cameraPos = getCameraPos();
-  destRect.x = npc->pixelPos->x + getDrawScreen()->x - getDrawMap()->x;
-  destRect.y = npc->pixelPos->y + getDrawScreen()->y - getDrawMap()->y;
-  destRect.w = TILED;
-  destRect.h = TILED;
-  if (destRect.x + TILED < cameraPos->x - (SCREEN_WIDTH / 2) ||
-      destRect.x - TILED > cameraPos->x + (SCREEN_WIDTH / 2)) {
-  }
-  else if (destRect.y + TILED < cameraPos->y - (SCREEN_HEIGHT / 2) ||
-	   destRect.y - TILED > cameraPos->y + (SCREEN_HEIGHT / 2)) {
-  }
-  else {
+  if (setDestrectForDrawingSomethingFromPixelPos(&destRect, npc->pixelPos) != NULL){
     if (npc->animateState->holder != NULL && npc->animateState->holder->sprite_sheet != NULL ) {
       srcRect.x = npc->animateState->spriteCol * npc->animateState->holder->sprite_width;
       srcRect.y = npc->animateState->spriteRow * npc->animateState->holder->sprite_height;
@@ -205,6 +218,7 @@ void drawNpc(npc* npc) {
       }
     }
   }
+  //else the pixpos was offscreen, no need to draw
 }
 
 

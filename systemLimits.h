@@ -10,7 +10,9 @@
 //extern int MAXPATHLEN;
 extern int SCREEN_WIDTH;
 extern int SCREEN_HEIGHT;
+extern int TILED;
 extern char* MEDIA_DIR;
+
 void writeFilePath(char* dest, char* textPath);
 int setMediaDir();
 void copyWithMediaPrefix(char* dest, char* text);

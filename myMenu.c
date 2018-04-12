@@ -312,7 +312,6 @@ void fillMenu(menu* theMenu) {
   dstRect.x = 0;
   dstRect.y = 0;
   dstRect.h = height;
-  printf("height is %d\n" , height);
   SDL_Surface* textSurf;
   menu* menuEntry;
   for (int i = 0 ; i < theMenu->arrayBound ; i++) {

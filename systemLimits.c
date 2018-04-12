@@ -6,9 +6,10 @@
 
 int SCREEN_WIDTH = 480;
 int SCREEN_HEIGHT = 360;
+int TILED = 16;
 char* MEDIA_DIR = NULL;
 //probably better to interpret the slashes as collapsing things
-//or put medai folder withing running dir. or do symbolic links
+//or put media folder withing running dir. or do symbolic links
 static char* fromLocalToMedia = "../../../media/";
 
 void writeFilePath(char* dest, char* textPath) {
@@ -36,9 +37,10 @@ int setMediaDir() {
     memcpy(MEDIA_DIR, temp, tempLen);
     memcpy(&(MEDIA_DIR[tempLen]), fromLocalToMedia, fltmLen);
     MEDIA_DIR[tempLen + fltmLen] = '\0';
-    fprintf(stderr, "%s\n", temp);
-    fprintf(stderr, "%s\n", fromLocalToMedia);
-    fprintf(stderr, "%s\n", MEDIA_DIR);
+    //fprintf(stderr, "%s\n", temp);
+    //fprintf(stderr, "%s\n", fromLocalToMedia);
+    fprintf(stderr, "\"%s\" is the folder for media\n", MEDIA_DIR);
+    fprintf(stderr, "can change media folder path relative to executable dir by changing the \"fromLocalToMedia\" path in systemLimits.c");
     ret = 0;
   }
   else {
