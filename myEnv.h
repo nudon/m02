@@ -56,4 +56,9 @@ void transitionToMapEdit();
 
 void selectMenu(char* entry);
 
+void setupMapSave();
+void setupMapLoad();
+void saveMap(char* path);
+void loadMap(char* path);
+
 #endif 

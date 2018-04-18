@@ -1,6 +1,8 @@
 #include "myEnv.h"
 #include "myImage.h"
 #include "myInput.h"
+#include "mySave.h"
+#include "systemLimits.h"
 
 //transitions, are done at end of action, because otherwise changing environ mid-action gets odd
 //also, outside of menus, expecting some keypres to bring up menu
@@ -187,7 +189,7 @@ void transferToMapEdit() {
   //probably just going to have to run some tests on which is faster
   setGameState(GAMEMAPEDIT);
   mapEdit->map = currentEnv->map;
-  npc* mc = getControlledNpc(currentEnv);
+  //  npc* mc = getControlledNpc(currentEnv);
   npcNode* debug = getControlledNpcNode(mapEdit);
   allignPixPosToTilePos(debug->storedNpc->pixelPos, debug->storedNpc->tilePos);
   setTilePos(debug->dest, debug->storedNpc->tilePos);
@@ -356,6 +358,7 @@ void setMapStructField() {
 }
 
 
+
 void selectMenu(char* entry) {
   int found = 0;
   int index = 0;
@@ -375,5 +378,65 @@ void selectMenu(char* entry) {
     else {
       index++;
     }
+  }
+}
+
+void setupMapLoad() {
+  setupMapSave();
+}
+
+char mapFile[MAXPATHLEN];
+void setupMapSave() {
+  //some odd things here 
+  //mapFile[0] = '^';
+  setGameState(MENUTEXTENTRY);
+  fieldType = STRING_CHANGE;
+  setStringField(mapFile);
+  setStringTemp("enter text");
+  
+}
+
+
+
+void saveMap(char* path) {
+  //do some read write stuff
+  char* savedMap = tileMapToString(getMap(mapEdit)->tileMap);
+  //....
+  char actualPath[MAXPATHLEN];
+  copyWithMediaPrefix(actualPath, path);
+  SDL_RWops *file = SDL_RWFromFile(actualPath, "w");
+  if (file != NULL) {
+    SDL_RWwrite(file, savedMap, sizeof(char), strlen(savedMap));
+    SDL_RWclose(file);
+  }
+  else {
+    fprintf(stderr, "Unable to save File \'%s\' at location \'%s\'\n",
+	    path, actualPath);
+  }
+}
+
+
+void loadMap(char* path) {
+  //want a better way of doing this.
+  //thinking of storing some int at begining of file and reading that first, 
+  int sizeofMap = 4000;
+  char loadedMapSave[sizeofMap];
+  
+  char actualPath[MAXPATHLEN];
+  copyWithMediaPrefix(actualPath, path);
+  SDL_RWops *file = SDL_RWFromFile(actualPath, "r");
+  if (file != NULL) { 
+    SDL_RWread(file, loadedMapSave, sizeof(char), sizeofMap);
+    SDL_RWclose(file);
+    //....
+    map* activeMap = getMap(mapEdit);
+    freeTileMap(activeMap->tileMap);
+    activeMap->tileMap = stringToTileMap(loadedMapSave);
+    SDL_DestroyTexture(getMapBG(mapEdit));
+    setMapBG(mapEdit, cinterTiles(activeMap->tileMap));
+  }
+  else {
+    fprintf(stderr, "File \'%s\' was not found at location \'%s\'\n",
+	    path, actualPath);
   }
 }

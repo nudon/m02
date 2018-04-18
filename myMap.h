@@ -51,6 +51,13 @@ struct {
 
 
 
+map* debugMap();
+tileMap* debugTilesInit();
+tileMap* initTiles(int rows, int cols);
+tileMap* changeMapDim(map* map, int newRows, int newCols);
+SDL_Texture* cinterTiles(tileMap* tiles);
+void startDebugPopulate();
+void setDrawnMap( map * map, pixPos* currentPos);
 
 tilePos* createTilePos(int x, int y);
 void freeTilePos(tilePos* tilePos);
@@ -65,13 +72,6 @@ void freeTile(tile* tile);
 void freeTileMap(tileMap* tMap);
 void freeMap(map* map);
 
-map* debugMap();
-tileMap* debugTilesInit();
-tileMap* initTiles(int rows, int cols);
-tileMap* changeMapDim(map* map, int newRows, int newCols);
-void startDebugPopulate();
-void setDrawnMap( map * map, pixPos* currentPos);
-SDL_Texture* cinterTiles(tileMap* tiles);
 tile* getTileFromMapPos(map* map, tilePos* pos);
 tile* getTileFromMapCord(map* map, int y, int x);
 tile* getTileFromTileMapPos(tileMap* tiles, tilePos* pos);

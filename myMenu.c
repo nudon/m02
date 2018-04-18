@@ -29,6 +29,8 @@ static menu* createTileStructInput(menu* parent, char* message);
 static menu* createMapStructInput(menu* parent, char* message);
 static menu* createStringInput(menu* parent, char* message);
 static menu* createMenuOpt(int w, int h, char* msg);
+static menu* createSaveMenu(menu* parent);
+static menu* createLoadMenu(menu* parent);
 static menu* createTileStructEntry(menu* parent);
 static menu* createMapStructEntry(menu* parent);
 static void setFont(TTF_Font* font, char* fontPath);
@@ -51,6 +53,8 @@ char* STRING_TILE_BG_PATH = "Path to BG";
 char* INT_TILE_WALL = "Wall status";
 char* INT_MAP_ROWS = "Rows";
 char* INT_MAP_COLS = "Cols";
+char* SAVE_MAP = "Save map";
+char* LOAD_MAP = "Load a map";
 
 static TTF_Font* globalFont = NULL;
 
@@ -207,7 +211,7 @@ menu* createMapEditMainMenu() {
   new->text = "Edit menu";
   //new->returnState = GAMEMAPEDIT;
   //new->newState = MENU;
-  new->arrayBound = 4;
+  new->arrayBound = 6;
   new->menuEntries = malloc(sizeof(menu) * new->arrayBound);
   menu* resume =  createMenu(new);
   resume->action = transitionToMapEdit;
@@ -223,12 +227,37 @@ menu* createMapEditMainMenu() {
   //want tile, and map size
   new->menuEntries[count++] = *createTileStructEntry(new);
   new->menuEntries[count++] = *createMapStructEntry(new);
+  new->menuEntries[count++] = *createSaveMenu(new);
+  new->menuEntries[count++] = *createLoadMenu(new);
   //new->menuEntries[count++] = something for map dimension
   new->action = transitionToMapEdit;
   fillMenu(new);
   
   return new;  
 }
+
+void setStateToTextInput() {
+
+}
+
+
+static menu* createLoadMenu(menu* parent) {
+  menu* new = createStringInput(parent, LOAD_MAP);
+  //might not need an action?
+  //kind of do, need it to clear whatever the previouse stringField pointed too
+  //that, or never touch the stringField
+  new->action = setupMapLoad;
+  return new;
+}
+
+
+static menu* createSaveMenu(menu* parent) {
+  menu* new= createStringInput(parent, SAVE_MAP);
+  //might not need an action? 
+  new->action = setupMapSave;
+  return new;
+}
+
 static menu* createTileStructEntry(menu* parent) {
   int count = 0;
   menu* new = createMenu();

@@ -38,6 +38,9 @@ extern char* STRING_TILE_BG_PATH;
 extern char* INT_TILE_WALL;
 extern char* INT_MAP_ROWS;
 extern char* INT_MAP_COLS;
+extern char* SAVE_MAP;
+extern char* LOAD_MAP;
+
 extern int fieldType;
 extern const int STRING_CHANGE;
 extern const int INT_CHANGE; 

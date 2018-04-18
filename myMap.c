@@ -8,26 +8,10 @@
 //drawn map, essentially a src rect on bg texure to draw
 //drawn screen, a dst rect on window to draw to
 
-//so, got map editing mostly worked out, growing shrinking works fine
-//just have an issue with the camera I guess. doesn't like big maps.
-//got some issue resolved, still getting some odd things with scrolling maps.
-//have case where npc starts not getting drawn too early
-//got some weird scalling issues down, the "drawDistance" cap is still off
-//fixed that, now only issue is that camera is slightly off center for actual mc
-//actually centered on upperleft hand corner of tile. thought adding a contant tiled/2 offset would fix, it didn't
-//trying to fuck/fine tune camera positions is actually kind of hard. added a multiple const to the tiled offset
-//didn't do anything except make some draw distance stuff behave oddly
-//maybe camera position isn't used like I think it is?
-//yeah, made it just a constant thing. didn't seem to affect much
-//looking at drawNpc then
-//solution was in setDrawnMap, had to add the constant to the drawnMap cords
-//generally seems like cameraPosition is mainly used for determining what to not draw, instead of where to draw
-
 static SDL_Rect drawnMap, drawnScreen;
 static pixPos* cameraPos;
 static int min(int f, int s);
-//lenOfNullTerminatedThing
-static int lontt(void* thing);
+
 
 map* debugMap() {
   map* debugMap = malloc(sizeof(map));
@@ -59,20 +43,14 @@ tileMap* initTiles(int cols, int rows) {
 	writeFilePath(getTileFromTileMapCord(newTileMap, colIndex, rowIndex)->tilePath, whiteTile);
       }
     }
-    //newTiles[i][actualRows - 1] = NULL;
   }
-  //newTiles[actualCols - 1] = NULL;
-
-
   return newTileMap;
 }
-//would like some ability to srhink/extend map limits without wiping out existing map
-//also kind of difficult, since I would have to do this after I get an int to commit and before I replace the old int.
-//also more difficult because I don't know which dimension I replaced,
-//well I do, or I could, if I compare map dim before and after change
+
+
 tileMap* changeMapDim(map* map, int newRows, int newCols) {
+  //takes tile map. extends/shrinks dimenions of map, and copies over old tiles when applicable
   tile* newTile,* oldTile;
-  
   tileMap* oldTileMap = map->tileMap;
   int oldRows = oldTileMap->rows;
   int oldCols = oldTileMap->cols;
@@ -81,8 +59,6 @@ tileMap* changeMapDim(map* map, int newRows, int newCols) {
   tileMap* newTileMap = initTiles(newCols, newRows);
   for(int colIndex = 0; colIndex < colBound; colIndex++) {
     for (int rowIndex = 0; rowIndex < rowBound; rowIndex++) {
-      //hopefully this works.
-      //doesn't, because it copies pointer too tilePos, which gets double freed
       newTile = getTileFromTileMapCord(newTileMap, colIndex, rowIndex);
       oldTile = getTileFromTileMapCord(oldTileMap, colIndex, rowIndex);
       cloneTile(newTile, oldTile);
@@ -92,6 +68,45 @@ tileMap* changeMapDim(map* map, int newRows, int newCols) {
   freeTileMap(oldTileMap);
   return newTileMap;
   
+}
+SDL_Texture* cinterTiles(tileMap* tiles) {
+  SDL_Texture* megaTexture = NULL;
+  SDL_Surface* megaSurface;
+
+  megaSurface = createSurfaceFromDim(tiles->cols * TILED, tiles->rows * TILED);
+  if (tiles->rows * tiles->cols >= 0) {
+    SDL_Rect subTexture;
+    SDL_Surface* loadedSurface;
+    subTexture.w = TILED;
+    subTexture.h = TILED;
+
+
+    subTexture.x = 0;
+    //swapped these for lines up to not fuck up may cache hit/miss ratio
+    //revert if anything breaks
+    for (int j = 0; j < tiles->cols; j++) {
+      subTexture.y = 0;
+      for (int i = 0; i < tiles->rows; i++) {
+	tile* tile = getTileFromTileMapCord(tiles, j, i);
+	char* thingy = tile->tilePath;
+	loadedSurface = loadToSurface(thingy);
+	SDL_BlitSurface(loadedSurface,
+			NULL,
+			megaSurface,
+			&subTexture);
+	SDL_FreeSurface(loadedSurface);
+	subTexture.y += TILED;
+      }
+      subTexture.x += TILED;
+    }
+    megaTexture = loadSurfaceToTexture(megaSurface);
+    SDL_FreeSurface(megaSurface);
+  
+  }
+  else {
+    fprintf(stderr, "Tile had one or more demension equal to zero\n");
+  }
+  return megaTexture;
 }
 
 void startDebugPopulate() {
@@ -216,44 +231,6 @@ void freeMap(map* map) {
   }
 }
 
-SDL_Texture* cinterTiles(tileMap* tiles) {
-  SDL_Texture* megaTexture = NULL;
-  SDL_Surface* megaSurface;
-
-  megaSurface = createSurfaceFromDim(tiles->cols * TILED, tiles->rows * TILED);
-  if (tiles->rows * tiles->cols >= 0) {
-    SDL_Rect subTexture;
-    SDL_Surface* loadedSurface;
-    subTexture.w = TILED;
-    subTexture.h = TILED;
-
-    subTexture.y = 0;
-    for (int i = 0; i < tiles->rows; i++) {
-      subTexture.x = 0;
-      for (int j = 0; j < tiles->cols; j++) {
-	tile* tile = getTileFromTileMapCord(tiles, j, i);
-	char* thingy = tile->tilePath;
-	loadedSurface = loadToSurface(thingy);
-	SDL_BlitSurface(loadedSurface,
-			NULL,
-			megaSurface,
-			&subTexture);
-	SDL_FreeSurface(loadedSurface);
-	subTexture.x += TILED;
-      }
-      subTexture.y += TILED;
-    }
-    megaTexture = loadSurfaceToTexture(megaSurface);
-    SDL_FreeSurface(megaSurface);
-  
-  }
-  else {
-    fprintf(stderr, "Tile had one or more demension equal to zero\n");
-  }
-  return megaTexture;
-}
-
-
 tile* getTileFromMapPos(map* map, tilePos* pos) {
   return getTileFromTileMapPos(map->tileMap, pos);
 }
@@ -300,19 +277,6 @@ static int min(int f, int s) {
   }
 }
 
-//lenOfNullTerminatedThing
-//only works with things that are void**'s
-static int lontt(void* thing) {
-  void** newThing = thing;
-  int len = 0;
-  if (newThing != NULL) {
-    while(newThing[len] != NULL) {
-      len++;
-    }
-  }
-  return len;  
-}
-
 int getMapDimY(map* theMap) {
   return theMap->tileMap->rows;
 }
@@ -348,4 +312,3 @@ int isAWall(tile* tile) {
     return 0;
   }
 }
-

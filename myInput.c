@@ -406,6 +406,12 @@ void commitChanges() {
       commitIntChanges();
     }
   }
+  else if (theMenu->text == SAVE_MAP) {
+    saveMap(stringTemp);
+  }
+  else if (theMenu->text == LOAD_MAP) {
+    loadMap(stringTemp);
+  }
   else if (fieldType == STRING_CHANGE) {
     commitStringChanges();
   }
@@ -453,6 +459,7 @@ void updateMap(map* theMap) {
     setMapDimX(theMap, oldCols);
     setMapDimY(theMap, oldRows);    
     changeMapDim(theMap, newRows, newCols);
+    SDL_DestroyTexture(getMapBG(currentEnv));
     setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
   }
   else {
