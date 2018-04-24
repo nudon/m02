@@ -16,6 +16,8 @@ static void mapEditAction();
 
 static void freeEnviron(environ* env);
 
+static void envInternalClone(int mode);
+
 void transferToGameRun();
 void transferToPauseMenu();
 void transferToMapEdit();
@@ -438,5 +440,46 @@ void loadMap(char* path) {
   else {
     fprintf(stderr, "File \'%s\' was not found at location \'%s\'\n",
 	    path, actualPath);
+  }
+}
+
+void updateMapBG() {
+  SDL_DestroyTexture(getMapBG(currentEnv));
+  setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+}
+
+static int cloneTileModeCopy = 1;
+static int cloneTileModeSet = 2;
+void setCloneTile() {
+  envInternalClone(cloneTileModeSet);
+}
+void carryOutTileClone() {
+  envInternalClone(cloneTileModeCopy);
+}
+
+static void envInternalClone(int mode) {
+  //mode == 1, clone tile
+  //mode == 2, set clone tile
+  static tile* clone = NULL;
+  tilePos* position = getControlledNpc(currentEnv)->tilePos;
+  tile* currTile = getTileFromMapPos(getMap(currentEnv), position);
+  if (mode == cloneTileModeCopy) {
+    if (clone != NULL) {
+      //funny thing here
+      //was breaking wallShade
+      //because I'm also cloning tilePos
+      cloneTile(currTile, clone);
+      updateMapBG();
+      *(currTile->tilePosition) = *position;
+    }
+  } else if (mode == cloneTileModeSet) {
+    if (clone == NULL) {
+      tile* temp = createTile(0,0);
+      clone = temp;
+    }
+    cloneTile(clone, currTile);
+  }
+  else {
+    fprintf(stderr, "envInternalClone invoked with invalid mode %d\n", mode);
   }
 }

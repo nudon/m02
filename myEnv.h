@@ -43,7 +43,7 @@ npc* getControlledNpc(environ * env);
 
 npcNode* getControlledNpcNode(environ* env);
 void updateMapEditMap();
-
+void updateMapBG();
 
 void setTileStructField();
 void setMapStructField();
@@ -60,5 +60,8 @@ void setupMapSave();
 void setupMapLoad();
 void saveMap(char* path);
 void loadMap(char* path);
+
+void setCloneTile();
+void carryOutTileClone();
 
 #endif 

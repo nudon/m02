@@ -219,6 +219,7 @@ int handleMapEditInput(npcNode* npcNode, SDL_Event* e) {
     }
     break;
   case SDLK_m:
+    //thought about having this pull up the mapDimEdit menu
     break;
   case SDLK_ESCAPE:
     activeKey = KEY_ESCAPE;
@@ -228,6 +229,16 @@ int handleMapEditInput(npcNode* npcNode, SDL_Event* e) {
   default:
     val = -1;
     break;
+  }
+  if (SDL_GetModState() & KMOD_CTRL) {
+    if (e->key.keysym.sym == SDLK_c) {
+      printf("copying tile\n");
+      setCloneTile();
+    }
+    if (e->key.keysym.sym == SDLK_v) {
+      carryOutTileClone();
+      printf("overwriting  tile\n");
+    }
   }
   return val;
 }
@@ -279,7 +290,7 @@ int handleTextEntry(SDL_Event* e) {
 	  intTemp = intTemp / 10;
 	}
       }
-
+      break;
 
     default:
       val = -1;
@@ -399,8 +410,7 @@ void commitChanges() {
     if (theMenu->text == STRING_TILE_BG_PATH) {
       fprintf(stderr, "re cintering tiles\n");
       commitStringChanges();
-      SDL_DestroyTexture(getMapBG(currentEnv));
-      setMapBG(currentEnv, cinterTiles(getTileMap(currentEnv)));
+      updateMapBG();
     }
     else if (theMenu->text == INT_TILE_WALL) {
       commitIntChanges();
