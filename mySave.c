@@ -1,4 +1,6 @@
+#include <assert.h>
 #include "mySave.h"
+//#include "myEnv.h"
 //#include "myMap.h"
 
 //kind of wondering if I could write code to take struct definitions as a source file
@@ -8,11 +10,15 @@
 //also there's probably memory leaks everywhere.
 
 static int sizeofMap = 80000;
+//preamble isn't really constant lenght, just wanted some max lenght
+//as long as I don't start throwing strings around, should be good.
+const int SIZE_OF_PREAMBLE = 16;
+void testVersionAndLen();
 
 void testSave() {
   tile* aTile = createTile(4,4);
   char* saved = tileToString(aTile);
-  fprintf(stderr, "1|%s|\n", saved);
+  fprintf(stderr, "\n1|%s|\n", saved);
   tile* reTile = stringToTile(saved);
   char* resaved = tileToString(reTile);
   fprintf(stderr, "2|%s|\n", resaved);
@@ -25,13 +31,26 @@ void testSave() {
   if (!strcmp(superTest, endTest)) {
     fprintf(stderr, "YYYEEEEAAAAAAAAAHHHHHH!!!!!!!\n");
   }
+  testVersionAndLen();
+}
+
+void testVersionAndLen() {
+  char* text = "four";
+  char* preamble = generatePreamble(text);
+  printf("version is %d\n", getVersionNumber(preamble));
+  printf("len is %d\n", getTotalLength(preamble));
 }
 
 
 
-static int bufferLen = 1024;
+//usually sufficient, but I put the map into a struct, so that breaks it.
+//will increase to 5000. was 1025
+//also kind of want a second len, because in some cases I have char asdf[bufferlen] to hold field names like "mapTiles"
+static int bufferLen = 5000;
 
 //structs
+char* mapStruct = "map";
+char* mapTiles = "mapTiles";
 char* tileStruct = "tile";
 char* tilePosStruct = "tilePos";
 //field names
@@ -65,6 +84,84 @@ char* arrayType = "type";
 char* arrayElement = "arrayElement";
 char* arrayElementRow = "row";
 char* arrayElementCol = "col";
+
+//some special versions for getting things from save file
+//potentially save file has multiple top-level structs,
+char* getMapSegFromSaveFile(char* savedText) {
+  char* mapSeg = gsss(savedText, mapStruct);
+  return mapSeg;
+}
+
+//want to provide some way of describing a save version number
+//as well as character length
+int versionNumber = 1;
+char* generatePreamble(char* text) {
+  int len = strlen(text);
+  char* lenString = intToString(len);
+  char* versionNumberString = intToString(versionNumber);
+  //need to decide on one standard for always writing/reading the version number and total length, independant of version
+  //could just have the two be in plaintext in a constant order, then maybe end preamble on some special character (dependant on version)
+  //think it makes sense to have version number be first
+  char* basicDelim = " ";
+  int preambleLen = strlen(lenString) + strlen(versionNumberString) + strlen(basicDelim);
+  char* combine = malloc(sizeof(char) * (preambleLen + 1));
+  int* index = &(int){0};
+  cail(combine, versionNumberString, index);
+  cail(combine, basicDelim, index);
+  cail(combine, lenString, index);
+  cail(combine, basicDelim, index);
+  assert(*index < SIZE_OF_PREAMBLE);
+  while(*index < SIZE_OF_PREAMBLE) {
+    cail(combine, " ", index);
+  }
+  free(versionNumberString);
+  free(lenString);
+
+  
+  return combine;
+}
+
+int getVersionNumber(char* text) {
+  int index = 0, verStart, verEnd;
+  while(isspace(text[index])) {
+    index++;
+  }
+  verStart = index;
+  while(!isspace(text[index])) {
+    index++;
+  }
+  verEnd = index;
+  char versionNumString[verEnd - verStart + 1];
+  memcpy(versionNumString, text + verStart, verEnd - verStart);
+  versionNumString[verEnd] = '\0';
+  return stringToInt(versionNumString);
+  
+}
+
+int getTotalLength(char* text) {
+  int index = 0, lenStart, lenEnd;
+  //this part skips over the version number
+  while(isspace(text[index])) {
+    index++;
+  }
+  while(!isspace(text[index])) {
+    index++;
+  }
+  //this part gets the total length
+  while(isspace(text[index])) {
+    index++;
+  }
+  lenStart = index;
+  while(!isspace(text[index])) {
+    index++;
+  }
+  lenEnd = index;
+  char lenString[lenEnd - lenStart + 1];
+  memcpy(lenString, text + lenStart, lenEnd - lenStart);
+  lenString[lenEnd] = '\0';
+  return stringToInt(lenString);
+  
+}
 
 char* tileToString(tile* tile) {
   char* text = malloc(sizeof(char) * bufferLen + 1);
@@ -102,7 +199,10 @@ char* tilePosToString(tilePos* tPos) {
 char* tileMapToString(tileMap* tMap) {
   char* text = malloc(sizeof(char) *sizeofMap);
   int* index = &(int){0};
-  *index = 0;
+  //*index = 0;
+
+  cail(text, mapTiles, index);
+  cail(text, structStartP, index);
   cail(text, arrayStruct, index);
   cail(text, arrayStartP, index);
 
@@ -123,6 +223,17 @@ char* tileMapToString(tileMap* tMap) {
     }
   }  
   cail(text, arrayEndP, index);
+  cail(text, structEndP, index);
+  return text;
+}
+
+char* mapToString(map* theMap) {
+  char* text = malloc(sizeof(char) * sizeofMap);
+  int* index = &(int){0};
+  cail(text, mapStruct, index);
+  cail(text, structStartP, index);
+  isaf(text, tileMapToString(theMap->tileMap), index);
+  cail(text, structEndP, index);
   return text;
 }
 
@@ -172,12 +283,10 @@ tile* stringToTile(char* string) {
 }
 
 //so array(rows: int,  col: int, type:struct, arrayElement(row:int, col:int, struct(...)))
-//since there are multiple arrayElements and gsss is kind of stupid in that regard(grabs first)
-//will add to index the strlen of the previouse gsss. Will break if there are internal arrayElements
-//other option is find start of arrayElement, and apply the index offset off of that index.
-//wanted to do first, but seems to janky. 
+//since there are multiple arrayElements and gsss is kind of stupid in that regard(grabs first occurence)
+//set index after gsss to start of arrayElement found, and apply then add to that the strlen of the struct segment
+//so index jumps over to the next arrayElement
 tileMap* stringToTileMap(char* text) {
-  //int index = 0;
   int rows = tstiaf(gvof(text, arrayRows));
   int cols = tstiaf(gvof(text, arrayCols));
   int row, col;
@@ -189,6 +298,8 @@ tileMap* stringToTileMap(char* text) {
   for (int colIndex = 0; colIndex < cols; colIndex++) {
     for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
       element = gsss(text + index, arrayElement);
+      //have to add 1 and strlen(arrayElement to move past the : associated with arrayElement
+      //otherwise the next call to gsss won't actually increment to the next array element
       index += giosos(text + index, arrayElement) + 1 + strlen(arrayElement);
       row = tstiaf(gvof(element, arrayElementRow));
       col = tstiaf(gvof(element, arrayElementCol));
@@ -203,18 +314,53 @@ tileMap* stringToTileMap(char* text) {
     }
   }
   return tMap;
+}
 
+map* stringToMap(char* text) {
+  map* new = malloc(sizeof(map));
+  char* tileMapSeg = gsss(text, mapTiles);
+  new->tileMap = stringToTileMap(tileMapSeg);
+  
+  new->mapBG = cinterTiles(new->tileMap);
+
+  return new;
 }
 
 //get struct string segment
-//fucks up if nested structs. need to keep count of structStarts
 char* gsss(char* text, char* structName) {
-  int isDone = 0;
   char* structString = malloc(sizeof(char) * bufferLen + 1);
+  int startCount = 0;
+  int fi;
+
+  int startOfSearch = giosos(text, structName);
+  if (startOfSearch >= 0) {
+    startCount = 0;
+    fi = 0;
+    while(text[startOfSearch + fi] != structStart) {
+      fi++;
+    }
+    do{
+      if (text[startOfSearch + fi] == structEnd) {
+	startCount--;
+      }
+      else if (text[startOfSearch + fi] == structStart) {
+	startCount++;
+      }
+      fi++;
+    } while(text[startOfSearch + fi] != '\0' && startCount != 0);
+    memcpy(structString, (text + startOfSearch), fi + 1);
+    structString[fi + 1] = '\0';
+  }
+  return structString;;
+}
+
+//get index of start of search
+int giosos(char* text, char* search) {
+  int retVal = 0;
+  int isDone = 0;
   char name[bufferLen];
   int index = 0;
-  int startCount = 0;
-  int bi, fi;
+  int bi;
   while(!isDone) {
     while (text[index] != '\0' && text[index] != structStart) {
       index++;
@@ -227,7 +373,7 @@ char* gsss(char* text, char* structName) {
       }
       memcpy(name, &(text[index - bi + 1]), bi - 1);
       name[bi - 1] = '\0';
-      if (!strcmp(name, structName)) {
+      if (!strcmp(name, search)) {
 	isDone = 1;
       }
       else {
@@ -235,60 +381,7 @@ char* gsss(char* text, char* structName) {
       }
     }
     else {
-      //reached end of string, didn't find structName
-      free(structString);
       isDone = -1;
-      //text = NULL;
-    }
-  }
-  if (isDone == 1) {
-    startCount = 0;
-    fi = 0;
-    do{
-      if (text[index + fi] == structEnd) {
-	startCount--;
-      }
-      else if (text[index + fi] == structStart) {
-	startCount++;
-      }
-      fi++;
-    } while(text[index + fi] != '\0' && startCount != 0);
-    memcpy(structString, (text + index - bi + 1), fi + bi - 1);
-    structString[bi + fi - 1] = '\0';
-  }
-  return structString;;
-}
-
-//get index of start of search
-
-//get next occurence of search? 
-int giosos(char* text, char* search) {
-  int retVal = 0;
-  int isDone = 0;
-  char* structString = malloc(sizeof(char) * bufferLen + 1);
-  char name[bufferLen];
-  int index = 0;
-  int bi;
-  while(!isDone) {
-    while (text[index] != '\0' && text[index] != structStart) {
-      index++;
-    }
-    if (text[index] != '\0') {
-      //go backwards until finding whitespace
-      bi= 0;
-      while(!isspace(text[index - bi])) {
-	bi++;
-      }
-      memcpy(name, &(text[index - bi + 1]), bi - 1);
-      if (strcmp(name, search)) {
-	isDone = 1;
-      }   
-    }
-    else {
-      //reached end of string, didn't find structName
-      free(structString);
-      isDone = -1;
-      //text = NULL;
     }
   }
   if (isDone == 1) {
@@ -301,7 +394,6 @@ int giosos(char* text, char* search) {
 }
 
 //get value of field
-//also busted, doesn't actually search for fieldName
 char* gvof(char* structSeg, char* fieldName) {
   int isDone = 0;
   int index = 0;

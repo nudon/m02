@@ -1,8 +1,17 @@
 #include "myMap.h"
 //struct -> string
 
+extern const int SIZE_OF_PREAMBLE;
 
 void testSave();
+
+char* generatePreamble(char* text);
+
+int getVersionNumber(char* text);
+
+int getTotalLength(char* text);
+
+char* getMapSegFromSaveFile(char* savedText);
 
 char* intToString(int number);
 
@@ -12,6 +21,8 @@ char* tileToString(tile* tile);
 char* tilePosToString(tilePos* tPos);
 
 char* tileMapToString(tileMap* tMap);
+
+char* mapToString(map* theMap);
 
 //insert string and free
 void isaf(char* dest, char * mallocedString, int* index);
@@ -29,6 +40,8 @@ tilePos* stringToTilePos(char* string);
 tile* stringToTile(char* string);
 
 tileMap* stringToTileMap(char* text);
+
+map* stringToMap(char* text);
 
 //get struct string segment
 char* gsss(char* text, char* structName);

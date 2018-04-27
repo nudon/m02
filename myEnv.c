@@ -24,7 +24,7 @@ void transferToMapEdit();
 
 struct environ_ {
   npcSet* npcSet;
-  map* map;
+  map** map;
   void (*action)();
   menu* menu;
 };
@@ -135,6 +135,9 @@ void transferToGameRun() {
 }
 
 static void gameRunAction() {
+  //testSave();
+  //loadMap("allBill");
+  //exit(EXIT_SUCCESS);
   setDrawnMap(getMap(currentEnv), getControlledNpc(currentEnv)->pixelPos);
   pickDestLoop(currentEnv->npcSet);
   moveDestLoop(currentEnv->npcSet);
@@ -212,7 +215,7 @@ static void mapEditAction() {
 environ* createEnviron() {
   environ* new = malloc(sizeof(environ));
   new->npcSet = NULL;
-  new->map = NULL;
+  new->map = malloc(sizeof(map*));;
   new->menu = NULL;
   return new;
 }
@@ -232,28 +235,28 @@ static void freeEnviron(environ* env) {
   //ideally just call specific free functions on fields
   //bit tricker when things are shared between environs. 
   freeNpcSet(env->npcSet);
-  freeMap(env->map);
+  freeMap(getMap(env));
   freeMenu(env->menu);
 }
 
 void setMap(environ* env, map* newMap) {
-    env->map = newMap;
+  *(env->map) = newMap;
 }
 
 map* getMap(environ* env) {
-  return env->map;
+  return *(env->map);
 }
 
 tileMap* getTileMap(environ* env) {
-  return env->map->tileMap;
+  return getMap(env)->tileMap;
 }
 
 SDL_Texture* getMapBG(environ* env) {
-  return env->map->mapBG;
+  return getMap(env)->mapBG;
 }
 
 void setMapBG(environ* env, SDL_Texture* newBG) {
-  env->map->mapBG = newBG;
+  getMap(env)->mapBG = newBG;
 }
 
 menu* getMenu(environ* env ) {
@@ -342,15 +345,14 @@ void setTileStructField() {
 void setMapStructField() {
   environ* mapEditEnv = mapEdit;
   char* text = getMenu(currentEnv)->text;
+  map* theMap = getMap(mapEditEnv);
   if (text == INT_MAP_ROWS) {
-    map* theMap = mapEditEnv->map;
     int* field = &(theMap->tileMap->rows);
     setIntField(field);
     setIntTemp(*field);
     fieldType = INT_CHANGE;
   }
   else if (text == INT_MAP_COLS) {
-    map* theMap = mapEditEnv->map;
     int* field = &(theMap->tileMap->cols);
     setIntField(field);
     setIntTemp(*field);
@@ -403,11 +405,14 @@ void setupMapSave() {
 void saveMap(char* path) {
   //do some read write stuff
   char* savedMap = tileMapToString(getMap(mapEdit)->tileMap);
+
+  char* preamble = generatePreamble(savedMap);
   //....
   char actualPath[MAXPATHLEN];
   copyWithMediaPrefix(actualPath, path);
   SDL_RWops *file = SDL_RWFromFile(actualPath, "w");
   if (file != NULL) {
+    SDL_RWwrite(file, preamble, sizeof(char), strlen(preamble));
     SDL_RWwrite(file, savedMap, sizeof(char), strlen(savedMap));
     SDL_RWclose(file);
   }
@@ -421,21 +426,36 @@ void saveMap(char* path) {
 void loadMap(char* path) {
   //want a better way of doing this.
   //thinking of storing some int at begining of file and reading that first, 
-  int sizeofMap = 4000;
-  char loadedMapSave[sizeofMap];
+
+  //so, things are working?
+  //able to load all bill, odd thing is that character movement is halved. somehow. 
+  //also crashes when actually loading from menu
+  //what did I change? before, just had 1 map, which I just changed the tileMap && bg pointers
+  //lol, issue is I put the loadMap as a thing in the gameRunAction, so every frame it's reading the file, creating things, creating buffers of length 5000, and all that. 
   
   char actualPath[MAXPATHLEN];
   copyWithMediaPrefix(actualPath, path);
   SDL_RWops *file = SDL_RWFromFile(actualPath, "r");
-  if (file != NULL) { 
-    SDL_RWread(file, loadedMapSave, sizeof(char), sizeofMap);
+  if (file != NULL) {
+    char preamble[SIZE_OF_PREAMBLE];
+    SDL_RWread(file, preamble, sizeof(char), SIZE_OF_PREAMBLE);
+    int versionNumber = getVersionNumber(preamble);
+    int sizeofFile = getTotalLength(preamble) + SIZE_OF_PREAMBLE;
+    char loadedSaveFile[sizeofFile];
+    SDL_RWread(file, loadedSaveFile, sizeof(char), sizeofFile);
     SDL_RWclose(file);
     //....
     map* activeMap = getMap(mapEdit);
-    freeTileMap(activeMap->tileMap);
-    activeMap->tileMap = stringToTileMap(loadedMapSave);
-    SDL_DestroyTexture(getMapBG(mapEdit));
-    setMapBG(mapEdit, cinterTiles(activeMap->tileMap));
+    if (activeMap != NULL) {
+      freeTileMap(activeMap->tileMap);
+      SDL_DestroyTexture(getMapBG(mapEdit));
+      free(activeMap);
+    }
+    //maybe have a load map which takes a string and int version number 
+    char* mapSegment = getMapSegFromSaveFile(loadedSaveFile);
+    activeMap = stringToMap(mapSegment);
+    setMap(currentEnv, activeMap);
+    free(mapSegment);
   }
   else {
     fprintf(stderr, "File \'%s\' was not found at location \'%s\'\n",
