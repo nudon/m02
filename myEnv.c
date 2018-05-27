@@ -87,15 +87,20 @@ void setupEnvirons() {
   mapEdit->action = mapEditAction;
   npcSet* mapEditSet = createNpcSet();
   mapEdit->npcSet = mapEditSet;
-  npc* debug = createNpc();
-  setTilePosByCord(debug->tilePos, 0, 0);
-  allignPixPosToTilePos(debug->pixelPos, debug->tilePos);
-  makeDebug(debug);
-  addNpc(debug);
   //gameQuit
   
 
   currentEnv = gameRun;
+}
+
+//this needs to get called after a map is loaded
+//since I made it so maps contain a matrix of where npc's are
+void initDebugNpc() {
+  npc* debug = createNpc();
+  setTilePosByCord(debug->tilePos, 0, 0);
+  allignPixPosToTilePos(debug->pixelPos, debug->tilePos);
+  makeDebug(debug);
+  addNpcToList(debug, mapEdit->npcSet->idleList);
 }
 
 void freeEnvirons() {
@@ -141,6 +146,7 @@ static void gameRunAction() {
   setDrawnMap(getMap(currentEnv), getControlledNpc(currentEnv)->pixelPos);
   pickDestLoop(currentEnv->npcSet);
   moveDestLoop(currentEnv->npcSet);
+  //valgrind really doesn't like this line
   SDL_RenderCopy(getRenderer(), getMapBG(currentEnv), getDrawMap(), getDrawScreen());
   drawAllNpcs(currentEnv->npcSet);
   transferIfNeeded();
@@ -391,8 +397,6 @@ void setupMapLoad() {
 
 char mapFile[MAXPATHLEN];
 void setupMapSave() {
-  //some odd things here 
-  //mapFile[0] = '^';
   setGameState(MENUTEXTENTRY);
   fieldType = STRING_CHANGE;
   setStringField(mapFile);
@@ -424,15 +428,6 @@ void saveMap(char* path) {
 
 
 void loadMap(char* path) {
-  //want a better way of doing this.
-  //thinking of storing some int at begining of file and reading that first, 
-
-  //so, things are working?
-  //able to load all bill, odd thing is that character movement is halved. somehow. 
-  //also crashes when actually loading from menu
-  //what did I change? before, just had 1 map, which I just changed the tileMap && bg pointers
-  //lol, issue is I put the loadMap as a thing in the gameRunAction, so every frame it's reading the file, creating things, creating buffers of length 5000, and all that. 
-  
   char actualPath[MAXPATHLEN];
   copyWithMediaPrefix(actualPath, path);
   SDL_RWops *file = SDL_RWFromFile(actualPath, "r");
@@ -451,7 +446,6 @@ void loadMap(char* path) {
       SDL_DestroyTexture(getMapBG(mapEdit));
       free(activeMap);
     }
-    //maybe have a load map which takes a string and int version number 
     char* mapSegment = getMapSegFromSaveFile(loadedSaveFile);
     activeMap = stringToMap(mapSegment);
     setMap(currentEnv, activeMap);
@@ -485,9 +479,6 @@ static void envInternalClone(int mode) {
   tile* currTile = getTileFromMapPos(getMap(currentEnv), position);
   if (mode == cloneTileModeCopy) {
     if (clone != NULL) {
-      //funny thing here
-      //was breaking wallShade
-      //because I'm also cloning tilePos
       cloneTile(currTile, clone);
       updateMapBG();
       *(currTile->tilePosition) = *position;

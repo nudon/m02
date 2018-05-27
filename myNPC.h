@@ -134,10 +134,17 @@ int validPos(tilePos* tile);
 
 void positionShift(npcNode* npcNode, int* shiftPos, int shiftAmount);
 
-void updateNpcPos(npc* npc);
+int updateNpcPos(npc* npc);
 
 SDL_Rect* setDestrectForDrawingSomethingFromTilePos(SDL_Rect* dest, tilePos* tPos);
 
 SDL_Rect* setDestrectForDrawingSomethingFromPixelPos(SDL_Rect* dest, pixPos* pPos);
+
+
+npcList* getNpcListAtIndex(gen_matrix* mat, int col, int row);
+
+void freeNpcMatrix(gen_matrix* npcMat);
+
+void moveNodesToNewList(npcList* new, npcList* old);
 
 #endif

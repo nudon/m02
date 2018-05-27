@@ -2,6 +2,7 @@
 #define FILE_MYMAP_SEEN
 
 #include <SDL2/SDL_image.h>
+#include "myMatrix.h"
 //#include "temp.h"
 //#include "myNPC.h"
 
@@ -25,7 +26,7 @@ struct {
 } pixPos;
 
 //thinking I'll do a similar thing to how I handled npcs
-//declare some uint8, have it store flags for properties of wall
+//declare some uint8, have it store flags for properties of wall/tile
 typedef
 struct {
   int isWall;  
@@ -44,15 +45,14 @@ struct {
 typedef
 struct {
   tileMap* tileMap;
-  //npcSet* allNpcs;
   SDL_Texture* mapBG;
-  //propigating name changes will be fun
+  gen_matrix* npcMap;
 } map;
-
 
 
 map* debugMap();
 tileMap* debugTilesInit();
+gen_matrix* initNpcMap(int cols, int rows);
 tileMap* initTiles(int rows, int cols);
 tileMap* changeMapDim(map* map, int newRows, int newCols);
 SDL_Texture* cinterTiles(tileMap* tiles);

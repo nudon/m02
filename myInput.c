@@ -341,6 +341,10 @@ void drawTextEntry() {
   if (fieldType == STRING_CHANGE) {
     char* text = getTempString();
     len = strlen(text);
+    if (len == 0) {
+      text = "Enter text";
+      len = strlen(text);
+    }
     dstRect.w = len * ENTRY_WIDTH;
     dstRect.x = (SCREEN_WIDTH - dstRect.w) / 2;
     SDL_RenderCopy(getRenderer(), currentMenu->menuImage, NULL, &dstRect);

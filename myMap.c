@@ -4,7 +4,7 @@
 #include "myMenu.h"
 #include "systemLimits.h"
 #include "myInput.h"
-
+#include "myEnv.h"
 //drawn map, essentially a src rect on bg texure to draw
 //drawn screen, a dst rect on window to draw to
 
@@ -12,16 +12,26 @@ static SDL_Rect drawnMap, drawnScreen;
 static pixPos* cameraPos;
 static int min(int f, int s);
 
-
 map* debugMap() {
   map* debugMap = malloc(sizeof(map));
   debugMap->tileMap = debugTilesInit();
-
+  debugMap->npcMap = initNpcMap(16, 16);
   return debugMap;
 }
 
 tileMap* debugTilesInit() {
   return initTiles(16, 16);
+}
+
+gen_matrix* initNpcMap(int cols, int rows) {
+  gen_matrix* new = newGen_matrix(cols, rows);
+  new->type = TYPE_NPCLIST;
+  for(int rowIndex = 0; rowIndex < rows; rowIndex++) {
+    for(int colIndex = 0; colIndex < cols; colIndex++) {
+      setDataAtIndex(new, colIndex, rowIndex, (void*)createNpcList());
+    }
+  }
+  return new;
 }
 
 tileMap* initTiles(int cols, int rows) {
@@ -51,21 +61,29 @@ tileMap* initTiles(int cols, int rows) {
 tileMap* changeMapDim(map* map, int newRows, int newCols) {
   //takes tile map. extends/shrinks dimenions of map, and copies over old tiles when applicable
   tile* newTile,* oldTile;
+  npcList* newList, *oldList;
   tileMap* oldTileMap = map->tileMap;
+  gen_matrix* oldNpcMap = map->npcMap;
   int oldRows = oldTileMap->rows;
   int oldCols = oldTileMap->cols;
   int colBound = min(newCols, oldCols);
   int rowBound = min(newRows, oldRows);
   tileMap* newTileMap = initTiles(newCols, newRows);
+  gen_matrix* newNpcMap = initNpcMap(newCols, newRows);
   for(int colIndex = 0; colIndex < colBound; colIndex++) {
     for (int rowIndex = 0; rowIndex < rowBound; rowIndex++) {
       newTile = getTileFromTileMapCord(newTileMap, colIndex, rowIndex);
       oldTile = getTileFromTileMapCord(oldTileMap, colIndex, rowIndex);
       cloneTile(newTile, oldTile);
+      newList = getNpcListAtIndex(newNpcMap, colIndex, rowIndex);
+      oldList = getNpcListAtIndex(oldNpcMap, colIndex, rowIndex);
+      moveNodesToNewList(newList, oldList);
     }
   }
   map->tileMap = newTileMap;
+  map->npcMap = newNpcMap;
   freeTileMap(oldTileMap);
+  freeNpcMatrix(oldNpcMap);
   return newTileMap;
   
 }
@@ -135,6 +153,8 @@ void startDebugPopulate() {
     allignPixPosToTilePos(circ->pixelPos, circ->tilePos);
     addNpc(circ);
     }
+
+    initDebugNpc();
 }
 
 void setDrawnMap(map * actualMap, pixPos* currentPos) {

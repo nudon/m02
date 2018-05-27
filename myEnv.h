@@ -49,6 +49,7 @@ void setTileStructField();
 void setMapStructField();
 
 void setupEnvirons();
+void initDebugNpc();
 
 void transitionToGameRun();
 void transitionToPauseMenu();

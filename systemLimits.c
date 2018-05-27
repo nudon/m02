@@ -11,6 +11,8 @@ char* MEDIA_DIR = NULL;
 //probably better to interpret the slashes as collapsing things
 //or put media folder withing running dir. or do symbolic links
 static char* fromLocalToMedia = "../../../media/";
+//if using a media dir in same dir as the executable itself,
+// just use /media/
 
 void writeFilePath(char* dest, char* textPath) {
   int len = strlen(textPath);

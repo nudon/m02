@@ -8,6 +8,7 @@
 #include "myInput.h"
 #include "systemLimits.h"
 #include "myEnv.h"
+#include "myMatrix.h"
 #include <assert.h>
 
 //extern int SCREEN_WIDTH, SCREEN_HEIGHT;
@@ -25,6 +26,8 @@ static void appendToNpcList(npcList* list, npcNode* new);
 static void prependToNpcList(npcList* list, npcNode* new);
 
 static void removeFromNpcList(npcList* list, npcNode* node);
+
+static npcNode* findNodeOfNpc(npcList* list, npc* npc);
 
 void pickDestLoop(npcSet* npcList) {
   npcNode* current = npcList->idleList->start;
@@ -115,15 +118,29 @@ void moveToDest(npcSet* totNpc, npcNode* npcNode) {
   }
 }
 
-void positionShift(npcNode* npcNode, int* shiftPos, int shiftAmount) {
+void positionShift(npcNode* theNpcNode, int* shiftPos, int shiftAmount) {
   *shiftPos = *shiftPos +  shiftAmount;
-  updateNpcPos(npcNode->storedNpc);
-  if (!validPos(npcNode->storedNpc->tilePos) && (!isDebuging(npcNode->storedNpc))) {
-    *shiftPos = *shiftPos - shiftAmount;
-    updateNpcPos(npcNode->storedNpc);
-    allignPixPosToTilePos(npcNode->storedNpc->pixelPos, npcNode->storedNpc->tilePos);
-    setTilePos(npcNode->dest, npcNode->storedNpc->tilePos);
-    //setDestByTile(npcNode, npcNode->storedNpc->position);
+  npc* storedNpc = theNpcNode->storedNpc;
+  //fun thing, declaring a npcNode* makes gcc complain.
+  //oh, because I have a variable called npcNode. So that's why you don't do that
+  npcNode *mapNode;
+  npcList* currentList, *newList;
+  currentList = getNpcListAtIndex(getMap(currentEnv)->npcMap, storedNpc->tilePos->x, storedNpc->tilePos->y);
+
+  if (updateNpcPos(storedNpc)) {
+    if (!validPos(storedNpc->tilePos) && (!isDebuging(storedNpc))) {
+      *shiftPos = *shiftPos - shiftAmount;
+      updateNpcPos(storedNpc);
+      allignPixPosToTilePos(storedNpc->pixelPos, storedNpc->tilePos);
+      setTilePos(theNpcNode->dest, storedNpc->tilePos);
+      //setDestByTile(npcNode, npcNode->storedNpc->position);
+    }
+    else {
+      newList = getNpcListAtIndex(getMap(currentEnv)->npcMap, storedNpc->tilePos->x, storedNpc->tilePos->y);
+      mapNode = findNodeOfNpc(currentList, storedNpc);
+      removeFromNpcList(currentList, mapNode);
+      appendToNpcList(newList, mapNode);
+    }
   }
 }
 
@@ -134,21 +151,28 @@ int validPos(tilePos* tile) {
   else if(tile->y < 0 || tile->y >= getMap(currentEnv)->tileMap->rows) {
     return 0;
   }
-  else if(isAWall(getTileFromMapPos(getMap(currentEnv),tile))) {
+  else if(isAWall(getTileFromMapPos(getMap(currentEnv),tile)) ||
+	  getNpcListAtIndex(getMap(currentEnv)->npcMap, tile->x, tile->y)->start != NULL) {
     return 0;
   }
   return 1;
 }
 
-void updateNpcPos(npc* npc) {
-  int tileOffset = npc->pixelPos->x - npc->tilePos->x * TILED;  
+int updateNpcPos(npc* npc) {
+  //given an npc, checks whether the tile Pos needs to be updated based on pixel position
+  //returns 1 if tile position was updated, 0 if not
+  int tileOffset = npc->pixelPos->x - npc->tilePos->x * TILED;
+  int ret = 0;
   if ( tileOffset >= TILED / 2 || tileOffset <= -TILED / 2) {
     npc->tilePos->x += round((double)tileOffset / TILED);
+    ret = 1;
   }
   tileOffset = npc->pixelPos->y - npc->tilePos->y * TILED;
   if ( tileOffset >= TILED / 2 || tileOffset <= -TILED / 2) {
     npc->tilePos->y += round((double)tileOffset / TILED);
+    ret = 1;
   }
+  return ret;
 }
 void drawAllNpcs(npcSet* set) {
   drawNpcList(set->idleList);
@@ -367,11 +391,16 @@ void freeNpcList(npcList* npcList) {
 }
 
 void addNpc(npc* npc) {
-  prependToNpcList(getNpcSet(currentEnv)->idleList, createNpcNode(npc));
+  npcList* idleList = getNpcSet(currentEnv)->idleList;
+  npcList* npcMapList = getNpcListAtIndex(getMap(currentEnv)->npcMap, npc->tilePos->x, npc->tilePos->y);
+  prependToNpcList(idleList, createNpcNode(npc));
+  prependToNpcList(npcMapList, createNpcNode(npc));
 }
 
 void addNpcToList(npc* npc, npcList* list) {
+  npcList* npcMapList = getNpcListAtIndex(getMap(currentEnv)->npcMap, npc->tilePos->x, npc->tilePos->y);
   prependToNpcList(list, createNpcNode(npc));
+  prependToNpcList(npcMapList, createNpcNode(npc));
 }
 
 void changeToMoveList(npcSet* totNpc, npcNode* npcNode) {
@@ -460,4 +489,48 @@ int equalTilePos(tilePos* t1, tilePos* t2) {
   }
 }
 
+static npcNode* findNodeOfNpc(npcList* list, npc* npc) {
+  npcNode* current = list->start;
+  while( current != NULL && current->storedNpc != npc) {
+    current = current->next;
+  }
+  return current;
+}
 
+npcList* getNpcListAtIndex(gen_matrix* mat, int col, int row) {
+  if (mat->type == TYPE_NPCLIST) {
+    return (npcList*)getDataAtIndex(mat, col, row);
+  }
+  else {
+    fprintf(stderr, "Types did not match for getNpcListAtIndex\n");
+    return NULL;
+  }
+}
+
+void freeNpcMatrix(gen_matrix* npcMat) {
+  if (npcMat == TYPE_NPCLIST) {
+    for (int rowIndex = 0; rowIndex < npcMat->rows; rowIndex++) {
+      for (int colIndex = 0; colIndex < npcMat->cols; colIndex++) {
+	freeNpcList(getNpcListAtIndex(npcMat, colIndex, rowIndex));
+      }
+      free(npcMat->data[rowIndex]);
+    }
+    free(npcMat->data);
+    free(npcMat);
+  }
+  else {
+    fprintf(stderr, "Type is not a npcList\n");
+  }
+}
+
+void moveNodesToNewList(npcList* new, npcList* old) {
+  npcNode* current = old->start;
+  npcNode* temp;
+  while(current != NULL) {
+    temp = current;
+    current = current->next;
+    appendToNpcList(new, temp);
+    removeFromNpcList(old, temp);
+
+  }
+}
